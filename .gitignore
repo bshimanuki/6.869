@@ -16,3 +16,6 @@ __pycache__
 *.log
 *.synctex.gz
 .*.sw?
+
+# Avoid tracking files related to PyCharm
+.idea/*
