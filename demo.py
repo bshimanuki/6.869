@@ -14,7 +14,7 @@ BATCH_SIZE = 100
 IMAGE_SIZE = 128
 NUM_CHANNELS = 3
 NUM_LABELS = 100
-NUM_EPOCHS = 10
+NUM_EPOCHS = 30
 SEED = 1234
 TYPE = tf.float32
 LABEL_TYPE = tf.int32
@@ -56,67 +56,70 @@ def accuracy(predictions, labels, k=1):
     print(Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
     return tf.reduce_mean(tf.cast(correct, tf.float32)).eval()
 
+def weight_variable(shape, name=None):
+    return tf.Variable(
+            tf.truncated_normal(
+                shape,
+                stddev=0.1,
+                seed=SEED,
+                dtype=TYPE),
+            name=name)
+
+def bias_variable(shape, name=None):
+    return tf.Variable(tf.zeros(shape=shape, dtype=TYPE), name=name)
+
+def conv_layer(input_layer, depth, window, name=None, variables=None):
+    assert(input_layer.get_shape().ndims == 4)
+    w_name = None if name is None else name + '_w'
+    b_name = None if name is None else name + '_b'
+    w = weight_variable([window, window, input_layer.get_shape().as_list()[-1], depth], w_name)
+    b = bias_variable([depth], b_name)
+    conv = tf.nn.conv2d(input_layer, w, strides=[1, 1, 1, 1], padding='SAME') + b
+    act = tf.nn.sigmoid(conv)
+    pool = tf.nn.max_pool(act, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+    if variables is not None:
+        variables['conv_w'].append(w)
+        variables['conv_b'].append(b)
+    return pool
+
+def ff_layer(input_layer, depth, name=None, activation=True, variables=None):
+    assert(input_layer.get_shape().ndims == 2)
+    w_name = None if name is None else name + '_w'
+    b_name = None if name is None else name + '_b'
+    w = weight_variable([input_layer.get_shape().as_list()[-1], depth], w_name)
+    b = bias_variable([depth], b_name)
+    hidden = tf.matmul(input_layer, w) + b
+    if activation:
+        hidden = tf.nn.sigmoid(hidden)
+    if variables is not None:
+        variables['ff_w'].append(w)
+        variables['ff_b'].append(b)
+    return hidden
+
+def conv_to_ff_layer(conv):
+    shape = conv.get_shape().as_list()
+    reshape = tf.reshape(conv, [shape[0], reduce(operator.mul, shape[1:], 1)])
+    return reshape
+
+def model(data):
+    variables = defaultdict(list)
+    conv = conv_layer(data, depth=64, window=5, name='conv1', variables=variables)
+    conv = conv_layer(conv, depth=32, window=5, name='conv2', variables=variables)
+    reshape = conv_to_ff_layer(conv)
+    hidden = ff_layer(reshape, depth=512, name='ff1', variables=variables)
+    output = ff_layer(hidden, depth=NUM_LABELS, name='ff2', activation=False, variables=variables)
+    return output, variables
+
 if __name__ == '__main__':
     x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS), name='input')
     y = tf.placeholder(tf.int32, shape=(BATCH_SIZE,), name='labels')
 
-    CONV_DEPTH_1 = 64
-    CONV_DEPTH_2 = 32
-    FF_DEPTH_1 = 512
-    POOL_STRIDE = 2
-    REDUCED_IMAGE_SIZE = IMAGE_SIZE // POOL_STRIDE**2 * IMAGE_SIZE // POOL_STRIDE**2
-    conv1_weights = tf.Variable(
-            tf.truncated_normal(
-                [5, 5, NUM_CHANNELS, CONV_DEPTH_1],
-                stddev=0.1,
-                seed=SEED,
-                dtype=TYPE),
-            name='conv1_w')
-    conv1_biases = tf.Variable(tf.zeros(shape=[CONV_DEPTH_1], dtype=TYPE), name='conv1_b')
-    conv2_weights = tf.Variable(
-            tf.truncated_normal(
-                [5, 5, CONV_DEPTH_1, CONV_DEPTH_2],
-                stddev=0.1,
-                seed=SEED,
-                dtype=TYPE),
-            name='conv2_w')
-    conv2_biases = tf.Variable(tf.zeros(shape=[CONV_DEPTH_2], dtype=TYPE), name='conv2_b')
-    ff1_weights = tf.Variable(
-            tf.truncated_normal(
-                [REDUCED_IMAGE_SIZE * CONV_DEPTH_2, FF_DEPTH_1],
-                stddev=0.1,
-                seed=SEED,
-                dtype=TYPE),
-            name='ff1_w')
-    ff1_biases = tf.Variable(tf.zeros(shape=[FF_DEPTH_1], dtype=TYPE), name='ff1_b')
-    ff2_weights = tf.Variable(
-            tf.truncated_normal(
-                [FF_DEPTH_1, NUM_LABELS],
-                stddev=0.1,
-                seed=SEED,
-                dtype=TYPE),
-            name='ff2_w')
-    ff2_biases = tf.Variable(tf.zeros(shape=[NUM_LABELS], dtype=TYPE), name='ff2_b')
-
-    def model(data):
-        conv = tf.nn.conv2d(data, conv1_weights, strides=[1, 1, 1, 1], padding='SAME')
-        sig = tf.nn.sigmoid(tf.nn.bias_add(conv, conv1_biases))
-        pool = tf.nn.max_pool(sig, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
-        conv = tf.nn.conv2d(pool, conv2_weights, strides=[1, 1, 1, 1], padding='SAME')
-        sig = tf.nn.sigmoid(tf.nn.bias_add(conv, conv2_biases))
-        pool = tf.nn.max_pool(sig, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
-        pool_shape = pool.get_shape().as_list()
-        reshape = tf.reshape(pool, [pool_shape[0], reduce(operator.mul, pool_shape[1:], 1)])
-        hidden = tf.nn.sigmoid(tf.matmul(reshape, ff1_weights) + ff1_biases)
-        return tf.matmul(hidden, ff2_weights) + ff2_biases
-
     cats = ['abbey', 'playground']
     train_data, train_labels, train_files = get_files('train', cats, n=IMAGES_PER_CAT)
     train_size = len(train_files)
-    logits = model(x)
+    logits, variables = model(x)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
-    regularizers = tf.nn.l2_loss(ff1_weights) + tf.nn.l2_loss(ff1_biases) + \
-            tf.nn.l2_loss(ff2_weights) + tf.nn.l2_loss(ff2_biases)
+    regularizers = sum(map(tf.nn.l2_loss, variables['ff_w'] + variables['ff_b']))
     loss += 1e-6 * regularizers
 
     batch = tf.Variable(0, dtype=TYPE)
@@ -124,8 +127,8 @@ if __name__ == '__main__':
             0.01,                # Base learning rate.
             batch * BATCH_SIZE,  # Current index into the dataset.
             train_size,          # Decay step.
-            0.9,                # Decay rate.
-            staircase=True)
+            0.9,                 # Decay rate.
+            staircase=False)
     # Use simple momentum for the optimization.
     optimizer = tf.train.MomentumOptimizer(learning_rate, 0.25).minimize(loss, global_step=batch)
 
@@ -159,14 +162,14 @@ if __name__ == '__main__':
             # print some extra information once reach the evaluation frequency
             if step % EVAL_FREQUENCY == 0:
                 # fetch some extra nodes' data
-                l, lr, predictions = sess.run([loss, learning_rate, train_prediction],
+                l, r, lr, predictions = sess.run([loss, regularizers, learning_rate, train_prediction],
                         feed_dict=feed_dict)
                 elapsed_time = time.time() - start_time
                 start_time = time.time()
                 print('Step %d (epoch %.2f), %.1f ms' %
                         (step, float(step) * BATCH_SIZE / train_size,
                             1000 * elapsed_time / EVAL_FREQUENCY))
-                print('Minibatch loss: %.3f, learning rate: %.6f' % (l, lr))
+                print('Minibatch loss: %.3f, regularizers: %.6g learning rate: %.6f' % (l, r, lr))
                 print('Minibatch accuracy: %.1f%%' % (100 * accuracy(predictions, _labels)))
                 sys.stdout.flush()
 
