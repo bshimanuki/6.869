@@ -68,19 +68,20 @@ def weight_variable(shape, name=None):
 def bias_variable(shape, name=None):
     return tf.Variable(tf.zeros(shape=shape, dtype=TYPE), name=name)
 
-def conv_layer(input_layer, depth, window, name=None, variables=None):
+def conv_layer(input_layer, depth, window, pool=None, name=None, variables=None):
     assert(input_layer.get_shape().ndims == 4)
     w_name = None if name is None else name + '_w'
     b_name = None if name is None else name + '_b'
     w = weight_variable([window, window, input_layer.get_shape().as_list()[-1], depth], w_name)
     b = bias_variable([depth], b_name)
     conv = tf.nn.conv2d(input_layer, w, strides=[1, 1, 1, 1], padding='SAME') + b
-    act = tf.nn.sigmoid(conv)
-    pool = tf.nn.max_pool(act, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME')
+    output = tf.nn.sigmoid(conv)
+    if pool is not None:
+        output = tf.nn.max_pool(output, ksize=[1, pool, pool, 1], strides=[1, pool, pool, 1], padding='SAME')
     if variables is not None:
         variables['conv_w'].append(w)
         variables['conv_b'].append(b)
-    return pool
+    return output
 
 def ff_layer(input_layer, depth, name=None, activation=True, variables=None):
     assert(input_layer.get_shape().ndims == 2)
@@ -103,8 +104,8 @@ def conv_to_ff_layer(conv):
 
 def model(data):
     variables = defaultdict(list)
-    conv = conv_layer(data, depth=64, window=5, name='conv1', variables=variables)
-    conv = conv_layer(conv, depth=32, window=5, name='conv2', variables=variables)
+    conv = conv_layer(data, depth=64, window=5, pool=2, name='conv1', variables=variables)
+    conv = conv_layer(conv, depth=32, window=5, pool=2, name='conv2', variables=variables)
     reshape = conv_to_ff_layer(conv)
     hidden = ff_layer(reshape, depth=512, name='ff1', variables=variables)
     output = ff_layer(hidden, depth=NUM_LABELS, name='ff2', activation=False, variables=variables)
