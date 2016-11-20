@@ -43,9 +43,9 @@ def get_files(partition, cats=[], n=None):
                 if n is None or num <= n:
                     files.append(DATA_PREFIX + name)
                     labels.append(cat)
-    train_queue = tf.train.slice_input_producer([files, labels], shuffle=True)
-    images = tf.read_file(train_queue[0])
-    labels = train_queue[1]
+    queue = tf.train.slice_input_producer([files, labels], shuffle=True)
+    images = tf.read_file(queue[0])
+    labels = queue[1]
     images = tf.image.decode_jpeg(images, channels=NUM_CHANNELS)
     images = tf.cast(images, TYPE)
     images.set_shape((IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS))
@@ -53,7 +53,7 @@ def get_files(partition, cats=[], n=None):
 
 def accuracy(predictions, labels, k=1):
     correct = tf.nn.in_top_k(predictions, labels, k)
-    print(Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
+    print('\t', Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
     return tf.reduce_mean(tf.cast(correct, tf.float32)).eval()
 
 def weight_variable(shape, name=None):
@@ -117,6 +117,8 @@ if __name__ == '__main__':
     cats = ['abbey', 'playground']
     train_data, train_labels, train_files = get_files('train', cats, n=IMAGES_PER_CAT)
     train_size = len(train_files)
+    val_data, val_labels, val_files = get_files('val', cats)
+
     logits, variables = model(x)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
     regularizers = sum(map(tf.nn.l2_loss, variables['ff_w'] + variables['ff_b']))
@@ -138,6 +140,10 @@ if __name__ == '__main__':
             [train_data, train_labels],
             batch_size=BATCH_SIZE)
 
+    batch_val_data, batch_val_labels = tf.train.batch(
+            [val_data, val_labels],
+            batch_size=BATCH_SIZE)
+
     start_time = time.time()
     config = tf.ConfigProto()
     # config.operation_timeout_in_ms = 2000
@@ -147,6 +153,9 @@ if __name__ == '__main__':
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         print('Initialized!')
+
+        val_data_sample, val_labels_sample = sess.run([batch_val_data, batch_val_labels])
+        val_feed_dict = {x: val_data_sample, y: val_labels_sample}
 
         # Loop through training steps.
         for step in range(int(NUM_EPOCHS * train_size) // BATCH_SIZE):
@@ -164,13 +173,16 @@ if __name__ == '__main__':
                 # fetch some extra nodes' data
                 l, r, lr, predictions = sess.run([loss, regularizers, learning_rate, train_prediction],
                         feed_dict=feed_dict)
+                val_l, val_predictions = sess.run([loss, train_prediction],
+                        feed_dict=val_feed_dict)
                 elapsed_time = time.time() - start_time
                 start_time = time.time()
                 print('Step %d (epoch %.2f), %.1f ms' %
                         (step, float(step) * BATCH_SIZE / train_size,
                             1000 * elapsed_time / EVAL_FREQUENCY))
-                print('Minibatch loss: %.3f, regularizers: %.6g learning rate: %.6f' % (l, r, lr))
-                print('Minibatch accuracy: %.1f%%' % (100 * accuracy(predictions, _labels)))
+                print('\tMinibatch loss: %.3f, regularizers: %.6g learning rate: %.6f' % (l, r, lr))
+                print('\tMinibatch accuracy: %.1f%%' % (100 * accuracy(predictions, _labels)))
+                print('\tValidation loss: %.3f Validation accuracy: %.1f%%' % (val_l, 100 * accuracy(val_predictions, val_labels_sample)))
                 sys.stdout.flush()
 
         coord.request_stop()
