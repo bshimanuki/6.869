@@ -21,6 +21,7 @@ LABEL_TYPE = tf.int32
 DATA_PREFIX = 'data/images/'
 EVAL_FREQUENCY = 1
 
+# Get list of categories, and mapping from category to index
 with open('development_kit/data/categories.txt') as f:
     categories = []
     category_to_index = {}
@@ -31,6 +32,13 @@ with open('development_kit/data/categories.txt') as f:
         category_to_index[name] = cat
 
 def get_files(partition, cats=[], n=None):
+    """
+
+    :param partition: String matching folder containing images. Valid values are 'test', 'train' and 'val'
+    :param cats: Target categories. Defaults to all categories if not specified.
+    :param n: Target number of examples. Defaults to infinity if not specified.
+    :return:
+    """
     cats = set(cats)
     files = []
     labels = []
@@ -39,6 +47,11 @@ def get_files(partition, cats=[], n=None):
             name, cat = line.split()
             num = int(''.join(filter(str.isdigit, name)))
             cat = int(cat)
+            """
+            Current example is used if:
+                (1) no categories were specified, or if its category is in the list of target categories `cats`.
+                (2) `n` is not specified, or the number of examples so far is less than the target `n`
+            """
             if not cats or categories[cat] in cats:
                 if n is None or num <= n:
                     files.append(DATA_PREFIX + name)
@@ -52,6 +65,16 @@ def get_files(partition, cats=[], n=None):
     return images, labels, files
 
 def accuracy(predictions, labels, k=1):
+    """Determines the accuracy of the predictions, and prints tally of (top_prediction, label).
+
+    A prediction is considered accurate if the label is among the top k predictions.
+
+    :param predictions: (batch_size, classes) tensor of predictions, with each entry corresponding to the probability
+        that an example corresponds to a given class.
+    :param labels: batch_size vector of class ids.
+    :param k:
+    :return: Proportion of accurate predictions.
+    """
     correct = tf.nn.in_top_k(predictions, labels, k)
     print('\t', Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
     return tf.reduce_mean(tf.cast(correct, tf.float32)).eval()
