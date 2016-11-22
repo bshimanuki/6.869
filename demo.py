@@ -105,6 +105,18 @@ def bias_variable(shape, name=None):
     return tf.Variable(tf.zeros(shape=shape, dtype=TYPE), name=name)
 
 def conv_layer(input_layer, depth, window, pool=None, name=None, variables=None):
+    """Construct a convolutional layer which takes input_layer as input.
+
+    input_layer -> output
+    (batch_size, height, width, input_depth) -> (batch_size, height, width, depth)
+
+    :param input_layer: input tensor
+    :param depth: number of convolution images
+    :param window: size of convolutional kernel (side length)
+    :param pool: None for no pooling, stride length for pooling
+    :param name:
+    :param variables: dict with keys conv_w and conv_b to add weight and bias variables to
+    """
     assert(input_layer.get_shape().ndims == 4)
     w_name = None if name is None else name + '_w'
     b_name = None if name is None else name + '_b'
@@ -120,6 +132,17 @@ def conv_layer(input_layer, depth, window, pool=None, name=None, variables=None)
     return output
 
 def ff_layer(input_layer, depth, name=None, activation=True, variables=None):
+    """Construct a fully connected layer which takes input_layer as input.
+
+    input_layer -> output
+    (batch_size, input_depth) -> (batch_size, depth)
+
+    :param input_layer:
+    :param depth: number of output nodes
+    :param name:
+    :param activation: boolean for whether to use the activation function (should be False for last layer)
+    :param variables: dict with keys ff_w and ff_b to add weight and bias variables to
+    """
     assert(input_layer.get_shape().ndims == 2)
     w_name = None if name is None else name + '_w'
     b_name = None if name is None else name + '_b'
@@ -133,12 +156,23 @@ def ff_layer(input_layer, depth, name=None, activation=True, variables=None):
         variables['ff_b'].append(b)
     return hidden
 
-def conv_to_ff_layer(conv):
-    shape = conv.get_shape().as_list()
-    reshape = tf.reshape(conv, [shape[0], reduce(operator.mul, shape[1:], 1)])
-    return reshape
+def conv_to_ff_layer(input_layer):
+    """Collapse a convolutional layer into a single dimension (plus batch dimension).
+
+    input_layer -> output
+    (batch_size, height, width, input_depth) -> (batch_size, height*width*input_depth)
+
+    :param input_layer:
+    """
+    shape = input_layer.get_shape().as_list()
+    output = tf.reshape(input_layer, [shape[0], reduce(operator.mul, shape[1:], 1)])
+    return output
 
 def model(data):
+    """Construct a model.
+
+    :param data: the batched input images
+    """
     variables = defaultdict(list)
     conv = conv_layer(data, depth=64, window=5, pool=2, name='conv1', variables=variables)
     conv = conv_layer(conv, depth=32, window=5, pool=2, name='conv2', variables=variables)
