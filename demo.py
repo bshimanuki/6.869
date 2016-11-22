@@ -23,12 +23,13 @@ import tensorflow as tf
 import numpy as np
 
 IMAGES_PER_CAT = 200
-BATCH_SIZE = 100
+BATCH_SIZE = 10 # TODO: return to 200
 IMAGE_SIZE = 128
 NUM_CHANNELS = 3
 NUM_LABELS = 100
 NUM_EPOCHS = 30
 SEED = 1234
+DROPOUT = 0.5
 TYPE = tf.float32
 LABEL_TYPE = tf.int32
 DATA_PREFIX = 'data/images/'
@@ -93,10 +94,19 @@ def accuracy(predictions, labels, k=1):
     return tf.reduce_mean(tf.cast(correct, tf.float32)).eval()
 
 def weight_variable(shape, name=None):
+    """
+    Standard deviation set using the weights suggested in the tutorial code at
+    https://github.com/hangzhaomit/tensorflow-tutorial/tree/master/miniplaces
+
+    :param shape:
+    :param name:
+    :return:
+    """
+    sigma=np.sqrt(2./np.product(shape[:-1]))
     return tf.Variable(
             tf.truncated_normal(
                 shape,
-                stddev=0.1,
+                stddev=sigma,
                 seed=SEED,
                 dtype=TYPE),
             name=name)
@@ -104,7 +114,7 @@ def weight_variable(shape, name=None):
 def bias_variable(shape, name=None):
     return tf.Variable(tf.zeros(shape=shape, dtype=TYPE), name=name)
 
-def conv_layer(input_layer, depth, window, pool=None, name=None, variables=None):
+def conv_layer(input_layer, depth, stride, window, activation_fn=tf.nn.sigmoid, pool=None, lrn=None, name=None, variables=None):
     """Construct a convolutional layer which takes input_layer as input.
 
     input_layer -> output
@@ -112,8 +122,10 @@ def conv_layer(input_layer, depth, window, pool=None, name=None, variables=None)
 
     :param input_layer: input tensor
     :param depth: number of convolution images
+    :param stride:
     :param window: size of convolutional kernel (side length)
-    :param pool: None for no pooling, stride length for pooling
+    :param pool: None for no pooling. (ksize, stride) otherwise.
+    :param lrn: None for no local response normalization. (depth radius, bias, alpha, beta) otherwise.
     :param name:
     :param variables: dict with keys conv_w and conv_b to add weight and bias variables to
     """
@@ -122,16 +134,27 @@ def conv_layer(input_layer, depth, window, pool=None, name=None, variables=None)
     b_name = None if name is None else name + '_b'
     w = weight_variable([window, window, input_layer.get_shape().as_list()[-1], depth], w_name)
     b = bias_variable([depth], b_name)
-    conv = tf.nn.conv2d(input_layer, w, strides=[1, 1, 1, 1], padding='SAME') + b
-    output = tf.nn.sigmoid(conv)
+    conv = tf.nn.conv2d(input_layer, w, strides=[1, stride, stride, 1], padding='SAME') + b
+    # Note: Sample code seems to use tf.nn.bias_add instead of straight addition here.
+    output = activation_fn(conv)
+    if lrn is not None:
+        (lrn_depth_radius, lrn_bias, lrn_alpha, lrn_beta) = lrn
+        output = tf.nn.local_response_normalization(
+            output,
+            depth_radius=lrn_depth_radius,
+            bias=lrn_bias,
+            alpha=lrn_alpha,
+            beta=lrn_beta,
+        )
     if pool is not None:
-        output = tf.nn.max_pool(output, ksize=[1, pool, pool, 1], strides=[1, pool, pool, 1], padding='SAME')
+        (pool_ksize, pool_stride) = pool
+        output = tf.nn.max_pool(output, ksize=[1, pool_ksize, pool_ksize, 1], strides=[1, pool_stride, pool_stride, 1], padding='SAME')
     if variables is not None:
         variables['conv_w'].append(w)
         variables['conv_b'].append(b)
     return output
 
-def ff_layer(input_layer, depth, name=None, activation=True, variables=None):
+def ff_layer(input_layer, depth, activation_fn=tf.nn.sigmoid, dropout=None, name=None, activation=True, variables=None):
     """Construct a fully connected layer which takes input_layer as input.
 
     input_layer -> output
@@ -139,6 +162,8 @@ def ff_layer(input_layer, depth, name=None, activation=True, variables=None):
 
     :param input_layer:
     :param depth: number of output nodes
+    :param activation_fn:
+    :param dropout: None if no dropout layer; keep_prob otherwise
     :param name:
     :param activation: boolean for whether to use the activation function (should be False for last layer)
     :param variables: dict with keys ff_w and ff_b to add weight and bias variables to
@@ -150,7 +175,11 @@ def ff_layer(input_layer, depth, name=None, activation=True, variables=None):
     b = bias_variable([depth], b_name)
     hidden = tf.matmul(input_layer, w) + b
     if activation:
-        hidden = tf.nn.sigmoid(hidden)
+        # TODO: potentially change this to just passign in an identity as the activation function
+        hidden = activation_fn(hidden)
+    if dropout is not None:
+        keep_prob = dropout
+        hidden = tf.nn.dropout(hidden, keep_prob)
     if variables is not None:
         variables['ff_w'].append(w)
         variables['ff_b'].append(b)
@@ -174,12 +203,89 @@ def model(data):
     :param data: the batched input images
     """
     variables = defaultdict(list)
-    conv = conv_layer(data, depth=64, window=5, pool=2, name='conv1', variables=variables)
-    conv = conv_layer(conv, depth=32, window=5, pool=2, name='conv2', variables=variables)
+    conv = conv_layer(data, depth=64, stride=1, window=5, pool=(2, 2), name='conv1', variables=variables)
+    conv = conv_layer(conv, depth=32, stride=1, window=5, pool=(2, 2), name='conv2', variables=variables)
     reshape = conv_to_ff_layer(conv)
     hidden = ff_layer(reshape, depth=512, name='ff1', variables=variables)
     output = ff_layer(hidden, depth=NUM_LABELS, name='ff2', activation=False, variables=variables)
     return output, variables
+
+def alexnet(data, keep_prob):
+    variables = defaultdict(list)
+    conv1 = conv_layer(
+        data,
+        depth=96,
+        stride=4,
+        window=11,
+        activation_fn=tf.nn.relu,
+        pool=(3, 2),
+        lrn=(5, 1.0, 1e-4, 0.75),
+        name='conv1',
+        variables=variables
+    )
+    conv2 = conv_layer(
+        conv1,
+        depth=256,
+        stride=1,
+        window=5,
+        activation_fn=tf.nn.relu,
+        pool=(3, 2),
+        lrn=(5, 1.0, 1e-4, 0.75),
+        name='conv2',
+        variables=variables
+    )
+    conv3 = conv_layer(
+        conv2,
+        depth=384,
+        stride=1,
+        window=3,
+        activation_fn=tf.nn.relu,
+        name='conv3',
+        variables=variables
+    )
+    conv4 = conv_layer(
+        conv3,
+        depth=256,
+        stride=1,
+        window=3,
+        activation_fn=tf.nn.relu,
+        name='conv4',
+        variables=variables
+    )
+    conv5 = conv_layer(
+        conv4,
+        depth=256,
+        stride=1,
+        window=3,
+        activation_fn=tf.nn.relu,
+        pool=(3, 2),
+        name='conv5',
+        variables=variables
+    )
+    conv5r = conv_to_ff_layer(conv5)
+    # ff_layer(input_layer, depth, activation_fn=tf.nn.sigmoid, dropout=None, name=None, activation=True, variables=None):
+    fc6 = ff_layer(
+        conv5r,
+        depth=4096,
+        activation_fn = tf.nn.relu,
+        dropout = keep_prob,
+        name='fc6',
+        variables=variables
+    )
+    fc7 = ff_layer(
+        fc6,
+        depth=4096,
+        activation_fn = tf.nn.relu,
+        dropout = keep_prob,
+        name='fc6',
+        variables=variables
+    )
+    output = ff_layer(fc7, depth=NUM_LABELS, name='output', activation=False, variables=variables)
+    return output, variables
+
+
+# TODO: I was lazy, so I will just comment out all the code for Brian's model. Will refactor once I figure out
+# how to disentangle the stuff. Main blocker: regularizers.
 
 if __name__ == '__main__':
     x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS), name='input')
