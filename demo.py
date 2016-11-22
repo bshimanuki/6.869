@@ -20,6 +20,7 @@ TYPE = tf.float32
 LABEL_TYPE = tf.int32
 DATA_PREFIX = 'data/images/'
 EVAL_FREQUENCY = 1
+PATH_TO_LOGS = 'tb_logs/'
 
 # Get list of categories, and mapping from category to index
 with open('development_kit/data/categories.txt') as f:
@@ -64,7 +65,7 @@ def get_files(partition, cats=[], n=None):
     images.set_shape((IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS))
     return images, labels, files
 
-def accuracy(predictions, labels, k=1):
+def accuracy(predictions, labels, name=None, k=1):
     """Determines the accuracy of the predictions, and prints tally of (top_prediction, label).
 
     A prediction is considered accurate if the label is among the top k predictions.
@@ -75,21 +76,30 @@ def accuracy(predictions, labels, k=1):
     :param k:
     :return: Proportion of accurate predictions.
     """
-    correct = tf.nn.in_top_k(predictions, labels, k)
-    print('\t', Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
-    return tf.reduce_mean(tf.cast(correct, tf.float32)).eval()
+    with tf.name_scope('accuracy'):
+        correct = tf.nn.in_top_k(predictions, labels, k)
+        print('\t', Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
+        # accuracy = tf.reduce_mean(tf.cast(correct, tf.float32)).eval()
+        tf.scalar_summary('accuracy/' + name, accuracy)
+        return accuracy
 
 def weight_variable(shape, name=None):
-    return tf.Variable(
-            tf.truncated_normal(
-                shape,
-                stddev=0.1,
-                seed=SEED,
-                dtype=TYPE),
-            name=name)
+    with tf.name_scope('weight'):
+        weight = tf.Variable(
+                tf.truncated_normal(
+                    shape,
+                    stddev=0.1,
+                    seed=SEED,
+                    dtype=TYPE),
+                name=name)
+        tf.scalar_summary('weight/' + name, weight)
+        return weight
 
 def bias_variable(shape, name=None):
-    return tf.Variable(tf.zeros(shape=shape, dtype=TYPE), name=name)
+    with tf.name_scope('bias'):
+        bias = tf.Variable(tf.zeros(shape=shape, dtype=TYPE), name=name)
+        tf.scalar_summary('bias/' + name, bias)
+        return bias
 
 def conv_layer(input_layer, depth, window, pool=None, name=None, variables=None):
     assert(input_layer.get_shape().ndims == 4)
@@ -172,6 +182,10 @@ if __name__ == '__main__':
     config = tf.ConfigProto()
     # config.operation_timeout_in_ms = 2000
     with tf.Session(config=config) as sess:
+        # Initialize writer for TensorBoard
+        merged = tf.merge_all_summaries()
+        train_writer = tf.train.SummaryWriter(PATH_TO_LOGS, graph=tf.get_default_graph())
+
         # Run all the initializers to prepare the trainable parameters.
         sess.run(tf.initialize_all_variables())
         coord = tf.train.Coordinator()
@@ -199,6 +213,11 @@ if __name__ == '__main__':
                         feed_dict=feed_dict)
                 val_l, val_predictions = sess.run([loss, train_prediction],
                         feed_dict=val_feed_dict)
+
+                # Run and add TensorBoard summaries
+                summary = sess.run([merged]) # TODO: what feed_dict to pass?
+                train_writer.add_summary(summary, step)
+
                 elapsed_time = time.time() - start_time
                 start_time = time.time()
                 print('Step %d (epoch %.2f), %.1f ms' %
