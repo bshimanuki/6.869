@@ -6,6 +6,19 @@ import operator
 import time
 import sys
 
+import logger
+import subprocess
+
+# all prints
+
+timestamp = time.strftime("%Y-%m-%d_%H:%M:%S")
+full_log = logger.createLogger("logs/full_output__" + timestamp + ".log", "all outputs", True)
+print = full_log.info
+
+# hash = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode('UTF-8')[:-1]
+# param_log_name = "logs/save" + hash + "__" + timestamp +".log"
+# param_log = logger.createLogger(param_log_name, "parameters", True)
+
 import tensorflow as tf
 import numpy as np
 
