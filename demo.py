@@ -14,10 +14,15 @@ import argparse
 # all prints
 
 timestamp = time.strftime("%Y-%m-%d_%H:%M:%S")
+
+# print to save to full log and console
 full_log = logger.createLogger("logs/full_output__" + timestamp + ".log", "all outputs", True)
 print = full_log.info
-hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode('UTF-8')[:-1]
-param_log_name = "logs/save" + hash + "__" + timestamp +".log"
+githashval = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode('UTF-8')[:-1]
+
+# call log.info to save to proper log
+log = logger.createLogger("logs/log__" + timestamp + ".log", "logs to keep", False)
+param_log_name = "logs/save" + githashval + "__" + timestamp +".log"
 # param_log = logger.createLogger(param_log_name, "parameters", True)
 
 import tensorflow as tf
@@ -297,11 +302,11 @@ if __name__ == '__main__':
     parser.add_argument("-k", "--checkpoint-max-keep", type=int, default=10, help="The maximum number of checkpoints to keep before deleting old ones")
     parser.add_argument("-t", "--checkpoint-hours", type=int, default=6, help="Always keep 1 checkpoint every n hours")
     parser.add_argument("-f", "--load-file", type=str, help="filename of saved checkpoint")
-    parser.add_argument("-o", "--checkpoint-label", type=str, default="checkpoint__"+hash+"__"+timestamp,help="Saved checkpoints will be named 'name'-'step'. defaults to checkpoint__hash__timestamp")
+    parser.add_argument("-o", "--checkpoint-label", type=str, default="checkpoint__"+githashval+"__"+timestamp,help="Saved checkpoints will be named 'name'-'step'. defaults to checkpoint__hash__timestamp")
 
     args = parser.parse_args()
 
-    print("Starting Training......Git commit : %s\n Model: TODO\n"%hash)
+    print("Starting Training......Git commit : %s\n Model: TODO\n"%githashval)
     print("Description:")
     print("\t"+args.description+"\n")
     print("Saving every %d steps, keeping a maximum of %d old checkpoints but keeping one checkpoint every %d hours." % (args.checkpoint_frequency, args.checkpoint_max_keep, args.checkpoint_hours))
