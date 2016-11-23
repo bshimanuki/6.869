@@ -102,38 +102,47 @@ def bias_variable(shape, name=None):
         return bias
 
 def conv_layer(input_layer, depth, window, pool=None, name=None, variables=None):
-    assert(input_layer.get_shape().ndims == 4)
-    w_name = None if name is None else name + '_w'
-    b_name = None if name is None else name + '_b'
-    w = weight_variable([window, window, input_layer.get_shape().as_list()[-1], depth], w_name)
-    b = bias_variable([depth], b_name)
-    conv = tf.nn.conv2d(input_layer, w, strides=[1, 1, 1, 1], padding='SAME') + b
-    output = tf.nn.sigmoid(conv)
-    if pool is not None:
-        output = tf.nn.max_pool(output, ksize=[1, pool, pool, 1], strides=[1, pool, pool, 1], padding='SAME')
-    if variables is not None:
-        variables['conv_w'].append(w)
-        variables['conv_b'].append(b)
-    return output
+    with tf.name_scope('conv_layer'):
+        assert(input_layer.get_shape().ndims == 4)
+        w_name = None if name is None else name + '_w'
+        b_name = None if name is None else name + '_b'
+        with tf.name_scope('conv_layer_weight'):
+            w = weight_variable([window, window, input_layer.get_shape().as_list()[-1], depth], w_name)
+        with tf.name_scope('conv_layer_bias'):
+            b = bias_variable([depth], b_name)
+        conv = tf.nn.conv2d(input_layer, w, strides=[1, 1, 1, 1], padding='SAME') + b
+        with tf.name_scope('conv_layer_output'):
+            output = tf.nn.sigmoid(conv)
+        if pool is not None:
+            output = tf.nn.max_pool(output, ksize=[1, pool, pool, 1], strides=[1, pool, pool, 1], padding='SAME')
+        if variables is not None:
+            variables['conv_w'].append(w)
+            variables['conv_b'].append(b)
+        return output
 
 def ff_layer(input_layer, depth, name=None, activation=True, variables=None):
-    assert(input_layer.get_shape().ndims == 2)
-    w_name = None if name is None else name + '_w'
-    b_name = None if name is None else name + '_b'
-    w = weight_variable([input_layer.get_shape().as_list()[-1], depth], w_name)
-    b = bias_variable([depth], b_name)
-    hidden = tf.matmul(input_layer, w) + b
-    if activation:
-        hidden = tf.nn.sigmoid(hidden)
-    if variables is not None:
-        variables['ff_w'].append(w)
-        variables['ff_b'].append(b)
-    return hidden
+    with tf.name_scope('ff_layer'):
+        assert(input_layer.get_shape().ndims == 2)
+        w_name = None if name is None else name + '_w'
+        b_name = None if name is None else name + '_b'
+        with tf.name_scope('ff_layer_weight'):
+            w = weight_variable([input_layer.get_shape().as_list()[-1], depth], w_name)
+        with tf.name_scope('ff_layer_bias'):
+            b = bias_variable([depth], b_name)
+        with tf.name_scope('ff_layer_hidden'):
+            hidden = tf.matmul(input_layer, w) + b
+        if activation:
+            hidden = tf.nn.sigmoid(hidden)
+        if variables is not None:
+            variables['ff_w'].append(w)
+            variables['ff_b'].append(b)
+        return hidden
 
 def conv_to_ff_layer(conv):
-    shape = conv.get_shape().as_list()
-    reshape = tf.reshape(conv, [shape[0], reduce(operator.mul, shape[1:], 1)])
-    return reshape
+    with tf.name_scope('conv_to_ff_layer'):
+        shape = conv.get_shape().as_list()
+        reshape = tf.reshape(conv, [shape[0], reduce(operator.mul, shape[1:], 1)])
+        return reshape
 
 def model(data):
     variables = defaultdict(list)
