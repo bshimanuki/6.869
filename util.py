@@ -1,3 +1,6 @@
+from collections import Counter
+
+import numpy as np
 import tensorflow as tf
 
 from constants import DATA_PREFIX, NUM_CHANNELS, TYPE, IMAGE_SIZE
@@ -49,3 +52,19 @@ def get_files(partition, all_categories, target_categories=[], n=None):
     images = tf.cast(images, TYPE)
     images.set_shape((IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS))
     return images, labels, files
+
+
+def accuracy(predictions, labels, k=1):
+    """Determines the accuracy of the predictions, and prints tally of (top_prediction, label).
+
+    A prediction is considered accurate if the label is among the top k predictions.
+
+    :param predictions: (batch_size, classes) tensor of predictions, with each entry corresponding to the probability
+        that an example corresponds to a given class.
+    :param labels: batch_size vector of class ids.
+    :param k:
+    :return: Proportion of accurate predictions.
+    """
+    correct = tf.nn.in_top_k(predictions, labels, k)
+    print('\t', Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
+    return tf.reduce_mean(tf.cast(correct, tf.float32)).eval()

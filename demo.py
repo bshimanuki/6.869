@@ -5,14 +5,13 @@ import os
 import subprocess
 import sys
 import time
-from collections import Counter
 
 import logger
 # all prints
 from constants import IMAGES_PER_CAT, BATCH_SIZE, IMAGE_SIZE, NUM_CHANNELS, NUM_EPOCHS, KEEP_PROB, \
     USE_GPU, TYPE, EVAL_FREQUENCY, CHECKPOINT_DIRECTORY
-from models import alexnet, briannet
-from util import get_categories, get_files
+from models import alexnet
+from util import accuracy, get_categories, get_files
 
 timestamp = time.strftime("%Y-%m-%d_%H:%M:%S")
 
@@ -27,23 +26,6 @@ param_log_name = "logs/save" + githashval + "__" + timestamp +".log"
 # param_log = logger.createLogger(param_log_name, "parameters", True)
 
 import tensorflow as tf
-import numpy as np
-
-
-def accuracy(predictions, labels, k=1):
-    """Determines the accuracy of the predictions, and prints tally of (top_prediction, label).
-
-    A prediction is considered accurate if the label is among the top k predictions.
-
-    :param predictions: (batch_size, classes) tensor of predictions, with each entry corresponding to the probability
-        that an example corresponds to a given class.
-    :param labels: batch_size vector of class ids.
-    :param k:
-    :return: Proportion of accurate predictions.
-    """
-    correct = tf.nn.in_top_k(predictions, labels, k)
-    print('\t', Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
-    return tf.reduce_mean(tf.cast(correct, tf.float32)).eval()
 
 
 def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp, model):
