@@ -46,19 +46,7 @@ def accuracy(predictions, labels, k=1):
     return tf.reduce_mean(tf.cast(correct, tf.float32)).eval()
 
 
-cats = []
-learning_rate = 0.002 # TODO: I need to figure out how to print out the learning rate
-optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate) # TODO: better variable naming
-# keep_prob = tf.placeholder(tf.float32)
-# val_feed_dict_supp = {keep_prob: 1.}
-# train_feed_dict_supp = {keep_prob: KEEP_PROB}
-# model = lambda v: alexnet(v, keep_prob)
-val_feed_dict_supp = {}
-train_feed_dict_supp = {}
-model = briannet
-
-if __name__ == '__main__':
-
+def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp, model):
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--description", type=str, default="No description Provided", help="A helpful label for this run")
@@ -92,7 +80,7 @@ if __name__ == '__main__':
 
     logits, variables = model(x)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
-    optimizer_op = optimizer.minimize(loss) # TODO: move this out somewhere?
+    optimizer_op = optimizer.minimize(loss)
 
     prediction = tf.nn.softmax(logits)
 
@@ -171,80 +159,19 @@ if __name__ == '__main__':
         coord.request_stop()
         coord.join(threads)
 
-# if __name__ == '__main__':
-#     x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS), name='input')
-#     y = tf.placeholder(tf.int32, shape=(BATCH_SIZE,), name='labels')
-#
-#     cats = ['abbey', 'playground']
-#     train_data, train_labels, train_files = get_files('train', cats, n=IMAGES_PER_CAT)
-#     train_size = len(train_files)
-#     val_data, val_labels, val_files = get_files('val', cats)
-#
-#     logits, variables = briannet(x)
-#     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
-#     regularizers = sum(map(tf.nn.l2_loss, variables['ff_w'] + variables['ff_b']))
-#     loss += 1e-6 * regularizers
-#
-#     batch = tf.Variable(0, dtype=TYPE)
-#     learning_rate = tf.train.exponential_decay(
-#             0.01,                # Base learning rate.
-#             batch * BATCH_SIZE,  # Current index into the dataset.
-#             train_size,          # Decay step.
-#             0.9,                 # Decay rate.
-#             staircase=False)
-#     # Use simple momentum for the optimization.
-#     optimizer = tf.train.MomentumOptimizer(learning_rate, 0.25).minimize(loss, global_step=batch)
-#
-#     train_prediction = tf.nn.softmax(logits)
-#
-#     batch_data, batch_labels = tf.train.batch(
-#             [train_data, train_labels],
-#             batch_size=BATCH_SIZE)
-#
-#     batch_val_data, batch_val_labels = tf.train.batch(
-#             [val_data, val_labels],
-#             batch_size=BATCH_SIZE)
-#
-#     start_time = time.time()
-#     config = tf.ConfigProto()
-#     # config.operation_timeout_in_ms = 2000
-#     with tf.Session(config=config) as sess:
-#         # Run all the initializers to prepare the trainable parameters.
-#         sess.run(tf.initialize_all_variables())
-#         coord = tf.train.Coordinator()
-#         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-#         print('Initialized!')
-#
-#         val_data_sample, val_labels_sample = sess.run([batch_val_data, batch_val_labels])
-#         val_feed_dict = {x: val_data_sample, y: val_labels_sample}
-#
-#         # Loop through training steps.
-#         for step in range(int(NUM_EPOCHS * train_size) // BATCH_SIZE):
-#             _data, _labels = sess.run([batch_data, batch_labels])
-#
-#             # This dictionary maps the batch data (as a numpy array) to the
-#             # node in the graph it should be fed to.
-#             feed_dict = {x: _data,
-#                     y: _labels}
-#             # Run the optimizer to update weights.
-#             sess.run(optimizer, feed_dict=feed_dict)
-#
-#             # print some extra information once reach the evaluation frequency
-#             if step % EVAL_FREQUENCY == 0:
-#                 # fetch some extra nodes' data
-#                 l, r, lr, predictions = sess.run([loss, regularizers, learning_rate, train_prediction],
-#                         feed_dict=feed_dict)
-#                 val_l, val_predictions = sess.run([loss, train_prediction],
-#                         feed_dict=val_feed_dict)
-#                 elapsed_time = time.time() - start_time
-#                 start_time = time.time()
-#                 print('Step %d (epoch %.2f), %.1f ms' %
-#                         (step, float(step) * BATCH_SIZE / train_size,
-#                             1000 * elapsed_time / EVAL_FREQUENCY))
-#                 print('\tMinibatch loss: %.3f, regularizers: %.6g learning rate: %.6f' % (l, r, lr))
-#                 print('\tMinibatch accuracy: %.1f%%' % (100 * accuracy(predictions, _labels)))
-#                 print('\tValidation loss: %.3f Validation accuracy: %.1f%%' % (val_l, 100 * accuracy(val_predictions, val_labels_sample)))
-#                 sys.stdout.flush()
-#
-#         coord.request_stop()
-#         coord.join(threads)
+
+if __name__ == '__main__':
+    learning_rate = 0.002
+    """
+    TODO: I need to figure out how to print out the learning rate when it's not a constant
+    Currently the issue is that the variable learning rate (using tf.train.exponential_decay) gives a float, but
+    setting tf.Variable(0.002) give a list (!!)
+    """
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+
+    ### Example when running BrianNet
+    # run([], 0.002, optimizer, {}, {}, briannet)
+
+    ### Example when running AlexNet
+    keep_prob = tf.placeholder(tf.float32) # we need to define a probability for the dropout
+    run([], 0.002, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model = lambda v: alexnet(v, keep_prob))
