@@ -5,18 +5,19 @@ from functools import reduce
 import operator
 import time
 import sys
+import os
 
 import logger
 import subprocess
+import argparse
 
 # all prints
 
 timestamp = time.strftime("%Y-%m-%d_%H:%M:%S")
 full_log = logger.createLogger("logs/full_output__" + timestamp + ".log", "all outputs", True)
 print = full_log.info
-
-# hash = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"]).decode('UTF-8')[:-1]
-# param_log_name = "logs/save" + hash + "__" + timestamp +".log"
+hash = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode('UTF-8')[:-1]
+param_log_name = "logs/save" + hash + "__" + timestamp +".log"
 # param_log = logger.createLogger(param_log_name, "parameters", True)
 
 import tensorflow as tf
@@ -33,6 +34,7 @@ TYPE = tf.float32
 LABEL_TYPE = tf.int32
 DATA_PREFIX = 'data/images/'
 EVAL_FREQUENCY = 1
+CHECKPOINT_DIRECTORY = 'checkpoints'
 
 # Get list of categories, and mapping from category to index
 with open('development_kit/data/categories.txt') as f:
@@ -182,6 +184,29 @@ def model(data):
     return output, variables
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument("-d", "--description", type=str, default="No description Provided", help="A helpful label for this run")
+    parser.add_argument("-s", "--checkpoint-frequency", type=int, default=200, help="Frequency of saving the state of training (in steps)")
+    parser.add_argument("-k", "--checkpoint-max-keep", type=int, default=5, help="The maximum number of checkpoints to keep before deleting old ones")
+    parser.add_argument("-t", "--checkpoint-hours", type=int, default=6, help="Always keep 1 checkpoint every n hours")
+    parser.add_argument("-f", "--load-file", type=str, help="filename of saved checkpoint")
+    parser.add_argument("-o", "--checkpoint-label", type=str, default="checkpoint__"+hash+"__"+timestamp,help="Saved checkpoints will be named 'name'-'step'. defaults to checkpoint__hash__timestamp")
+
+    args = parser.parse_args()
+
+    print("Starting Training......Git commit : %s\n Model: TODO\n"%hash)
+    print("Description:")
+    print("\t"+args.description+"\n")
+    print("Saving every %d steps, keeping a maximum of %d old checkpoints but keeping one checkpoint every %d hours." % (args.checkpoint_frequency, args.checkpoint_max_keep, args.checkpoint_hours))
+   
+    if not os.path.exists(CHECKPOINT_DIRECTORY):
+        print("Directory for checkpoints doesn't exist! Creating directory '" + CHECKPOINT_DIRECTORY +     "/'")
+        os.makedirs(CHECKPOINT_DIRECTORY)
+    else:
+        print("Checkpoints will be saved to '%s'" %(CHECKPOINT_DIRECTORY+"/"))    
+
+ 
     x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS), name='input')
     y = tf.placeholder(tf.int32, shape=(BATCH_SIZE,), name='labels')
 
@@ -218,6 +243,9 @@ if __name__ == '__main__':
     start_time = time.time()
     config = tf.ConfigProto()
     # config.operation_timeout_in_ms = 2000
+    
+    saver = tf.train.Saver(max_to_keep = args.checkpoint_max_keep, keep_checkpoint_every_n_hours = args.checkpoint_hours)
+
     with tf.Session(config=config) as sess:
         # Run all the initializers to prepare the trainable parameters.
         sess.run(tf.initialize_all_variables())
@@ -227,6 +255,11 @@ if __name__ == '__main__':
 
         val_data_sample, val_labels_sample = sess.run([batch_val_data, batch_val_labels])
         val_feed_dict = {x: val_data_sample, y: val_labels_sample}
+
+        # unsure this is the right place to restore variable states
+        if args.load_file:
+            saver.restore(sess, args.load_file)
+            print("Restored state from file : " + args.load_file)
 
         # Loop through training steps.
         for step in range(int(NUM_EPOCHS * train_size) // BATCH_SIZE):
@@ -253,8 +286,14 @@ if __name__ == '__main__':
                             1000 * elapsed_time / EVAL_FREQUENCY))
                 print('\tMinibatch loss: %.3f, regularizers: %.6g learning rate: %.6f' % (l, r, lr))
                 print('\tMinibatch accuracy: %.1f%%' % (100 * accuracy(predictions, _labels)))
-                print('\tValidation loss: %.3f Validation accuracy: %.1f%%' % (val_l, 100 * accuracy(val_predictions, val_labels_sample)))
+                print('\tValidation loss: %.3f Validation accuracy: %.1f%% \n' % (val_l, 100 * accuracy(val_predictions, val_labels_sample)))
                 sys.stdout.flush()
+            
+
+            if step % args.checkpoint_frequency == 0:
+                print("\tSaving state to %s......"% (CHECKPOINT_DIRECTORY+"/"+args.checkpoint_label+"-"+str(step)))
+                saver.save(sess, CHECKPOINT_DIRECTORY+"/"+args.checkpoint_label, global_step = step)
+                print("\tSuccess!\n")
 
         coord.request_stop()
         coord.join(threads)
