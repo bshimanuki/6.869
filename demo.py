@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 
-from collections import defaultdict, Counter
-from functools import reduce
-import operator
-import time
-import sys
+import argparse
 import os
+import subprocess
+import sys
+import time
+from collections import Counter
 
 import logger
-import subprocess
-import argparse
-
 # all prints
+from constants import IMAGES_PER_CAT, BATCH_SIZE, IMAGE_SIZE, NUM_CHANNELS, NUM_EPOCHS, KEEP_PROB, \
+    USE_GPU, TYPE, EVAL_FREQUENCY, CHECKPOINT_DIRECTORY
+from models import alexnet
+from util import get_categories, get_files
 
 timestamp = time.strftime("%Y-%m-%d_%H:%M:%S")
 
@@ -28,63 +29,6 @@ param_log_name = "logs/save" + githashval + "__" + timestamp +".log"
 import tensorflow as tf
 import numpy as np
 
-IMAGES_PER_CAT = 200
-BATCH_SIZE = 10 # TODO: return to 200
-IMAGE_SIZE = 128
-NUM_CHANNELS = 3
-NUM_LABELS = 100
-NUM_EPOCHS = 30
-SEED = 1234
-KEEP_PROB = 0.5
-USE_GPU = True
-TYPE = tf.float32
-LABEL_TYPE = tf.int32
-DATA_PREFIX = 'data/images/'
-EVAL_FREQUENCY = 1
-CHECKPOINT_DIRECTORY = 'checkpoints'
-
-# Get list of categories, and mapping from category to index
-with open('development_kit/data/categories.txt') as f:
-    categories = []
-    category_to_index = {}
-    for line in f:
-        name, cat = line.split()
-        cat = int(cat)
-        categories.append(name[3:]) # skip '/./'
-        category_to_index[name] = cat
-
-def get_files(partition, cats=[], n=None):
-    """
-
-    :param partition: String matching folder containing images. Valid values are 'test', 'train' and 'val'
-    :param cats: Target categories. Defaults to all categories if not specified.
-    :param n: Target number of examples. Defaults to infinity if not specified.
-    :return:
-    """
-    cats = set(cats)
-    files = []
-    labels = []
-    with open('development_kit/data/%s.txt' % partition) as f:
-        for line in f:
-            name, cat = line.split()
-            num = int(''.join(filter(str.isdigit, name)))
-            cat = int(cat)
-            """
-            Current example is used if:
-                (1) no categories were specified, or if its category is in the list of target categories `cats`.
-                (2) `n` is not specified, or the number of examples so far is less than the target `n`
-            """
-            if not cats or categories[cat] in cats:
-                if n is None or num <= n:
-                    files.append(DATA_PREFIX + name)
-                    labels.append(cat)
-    queue = tf.train.slice_input_producer([files, labels], shuffle=True)
-    images = tf.read_file(queue[0])
-    labels = queue[1]
-    images = tf.image.decode_jpeg(images, channels=NUM_CHANNELS)
-    images = tf.cast(images, TYPE)
-    images.set_shape((IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS))
-    return images, labels, files
 
 def accuracy(predictions, labels, k=1):
     """Determines the accuracy of the predictions, and prints tally of (top_prediction, label).
@@ -101,201 +45,13 @@ def accuracy(predictions, labels, k=1):
     print('\t', Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
     return tf.reduce_mean(tf.cast(correct, tf.float32)).eval()
 
-def weight_variable(shape, name=None):
-    """
-    Standard deviation set using the weights suggested in the tutorial code at
-    https://github.com/hangzhaomit/tensorflow-tutorial/tree/master/miniplaces
-
-    :param shape:
-    :param name:
-    :return:
-    """
-    sigma=np.sqrt(2./np.product(shape[:-1]))
-    return tf.Variable(
-            tf.truncated_normal(
-                shape,
-                stddev=sigma,
-                seed=SEED,
-                dtype=TYPE),
-            name=name)
-
-def bias_variable(shape, name=None):
-    return tf.Variable(tf.zeros(shape=shape, dtype=TYPE), name=name)
-
-def conv_layer(input_layer, depth, stride, window, activation_fn=tf.nn.sigmoid, pool=None, lrn=None, name=None, variables=None):
-    """Construct a convolutional layer which takes input_layer as input.
-
-    input_layer -> output
-    (batch_size, height, width, input_depth) -> (batch_size, height, width, depth)
-
-    :param input_layer: input tensor
-    :param depth: number of convolution images
-    :param stride:
-    :param window: size of convolutional kernel (side length)
-    :param pool: None for no pooling. (ksize, stride) otherwise.
-    :param lrn: None for no local response normalization. (depth radius, bias, alpha, beta) otherwise.
-    :param name:
-    :param variables: dict with keys conv_w and conv_b to add weight and bias variables to
-    """
-    assert(input_layer.get_shape().ndims == 4)
-    w_name = None if name is None else name + '_w'
-    b_name = None if name is None else name + '_b'
-    w = weight_variable([window, window, input_layer.get_shape().as_list()[-1], depth], w_name)
-    b = bias_variable([depth], b_name)
-    conv = tf.nn.conv2d(input_layer, w, strides=[1, stride, stride, 1], padding='SAME') + b
-    # Note: Sample code seems to use tf.nn.bias_add instead of straight addition here.
-    output = activation_fn(conv)
-    if lrn is not None:
-        (lrn_depth_radius, lrn_bias, lrn_alpha, lrn_beta) = lrn
-        output = tf.nn.local_response_normalization(
-            output,
-            depth_radius=lrn_depth_radius,
-            bias=lrn_bias,
-            alpha=lrn_alpha,
-            beta=lrn_beta,
-        )
-    if pool is not None:
-        (pool_ksize, pool_stride) = pool
-        output = tf.nn.max_pool(output, ksize=[1, pool_ksize, pool_ksize, 1], strides=[1, pool_stride, pool_stride, 1], padding='SAME')
-    if variables is not None:
-        variables['conv_w'].append(w)
-        variables['conv_b'].append(b)
-    return output
-
-def ff_layer(input_layer, depth, activation_fn=tf.nn.sigmoid, dropout=None, name=None, activation=True, variables=None):
-    """Construct a fully connected layer which takes input_layer as input.
-
-    input_layer -> output
-    (batch_size, input_depth) -> (batch_size, depth)
-
-    :param input_layer:
-    :param depth: number of output nodes
-    :param activation_fn:
-    :param dropout: None if no dropout layer; keep_prob otherwise
-    :param name:
-    :param activation: boolean for whether to use the activation function (should be False for last layer)
-    :param variables: dict with keys ff_w and ff_b to add weight and bias variables to
-    """
-    assert(input_layer.get_shape().ndims == 2)
-    w_name = None if name is None else name + '_w'
-    b_name = None if name is None else name + '_b'
-    w = weight_variable([input_layer.get_shape().as_list()[-1], depth], w_name)
-    b = bias_variable([depth], b_name)
-    hidden = tf.matmul(input_layer, w) + b
-    if activation:
-        # TODO: potentially change this to just passign in an identity as the activation function
-        hidden = activation_fn(hidden)
-    if dropout is not None:
-        keep_prob = dropout
-        hidden = tf.nn.dropout(hidden, keep_prob)
-    if variables is not None:
-        variables['ff_w'].append(w)
-        variables['ff_b'].append(b)
-    return hidden
-
-def conv_to_ff_layer(input_layer):
-    """Collapse a convolutional layer into a single dimension (plus batch dimension).
-
-    input_layer -> output
-    (batch_size, height, width, input_depth) -> (batch_size, height*width*input_depth)
-
-    :param input_layer:
-    """
-    shape = input_layer.get_shape().as_list()
-    output = tf.reshape(input_layer, [shape[0], reduce(operator.mul, shape[1:], 1)])
-    return output
-
-def model(data):
-    """Construct a model.
-
-    :param data: the batched input images
-    """
-    variables = defaultdict(list)
-    conv = conv_layer(data, depth=64, stride=1, window=5, pool=(2, 2), name='conv1', variables=variables)
-    conv = conv_layer(conv, depth=32, stride=1, window=5, pool=(2, 2), name='conv2', variables=variables)
-    reshape = conv_to_ff_layer(conv)
-    hidden = ff_layer(reshape, depth=512, name='ff1', variables=variables)
-    output = ff_layer(hidden, depth=NUM_LABELS, name='ff2', activation=False, variables=variables)
-    return output, variables
-
-def alexnet(data, keep_prob):
-    variables = defaultdict(list)
-    conv1 = conv_layer(
-        data,
-        depth=96,
-        stride=4,
-        window=11,
-        activation_fn=tf.nn.relu,
-        pool=(3, 2),
-        lrn=(5, 1.0, 1e-4, 0.75),
-        name='conv1',
-        variables=variables
-    )
-    conv2 = conv_layer(
-        conv1,
-        depth=256,
-        stride=1,
-        window=5,
-        activation_fn=tf.nn.relu,
-        pool=(3, 2),
-        lrn=(5, 1.0, 1e-4, 0.75),
-        name='conv2',
-        variables=variables
-    )
-    conv3 = conv_layer(
-        conv2,
-        depth=384,
-        stride=1,
-        window=3,
-        activation_fn=tf.nn.relu,
-        name='conv3',
-        variables=variables
-    )
-    conv4 = conv_layer(
-        conv3,
-        depth=256,
-        stride=1,
-        window=3,
-        activation_fn=tf.nn.relu,
-        name='conv4',
-        variables=variables
-    )
-    conv5 = conv_layer(
-        conv4,
-        depth=256,
-        stride=1,
-        window=3,
-        activation_fn=tf.nn.relu,
-        pool=(3, 2),
-        name='conv5',
-        variables=variables
-    )
-    conv5r = conv_to_ff_layer(conv5)
-    # ff_layer(input_layer, depth, activation_fn=tf.nn.sigmoid, dropout=None, name=None, activation=True, variables=None):
-    fc6 = ff_layer(
-        conv5r,
-        depth=4096,
-        activation_fn = tf.nn.relu,
-        dropout = keep_prob,
-        name='fc6',
-        variables=variables
-    )
-    fc7 = ff_layer(
-        fc6,
-        depth=4096,
-        activation_fn = tf.nn.relu,
-        dropout = keep_prob,
-        name='fc6',
-        variables=variables
-    )
-    output = ff_layer(fc7, depth=NUM_LABELS, name='output', activation=False, variables=variables)
-    return output, variables
-
 
 # TODO: I was lazy, so I will just comment out all the code for Brian's model. Will refactor once I figure out
 # how to disentangle the stuff. Main blocker: regularizers.
 
 if __name__ == '__main__':
+    (all_categories, category_to_index) = get_categories()
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--description", type=str, default="No description Provided", help="A helpful label for this run")
@@ -313,10 +69,10 @@ if __name__ == '__main__':
     print("Saving every %d steps, keeping a maximum of %d old checkpoints but keeping one checkpoint every %d hours." % (args.checkpoint_frequency, args.checkpoint_max_keep, args.checkpoint_hours))
    
     if not os.path.exists(CHECKPOINT_DIRECTORY):
-        print("Directory for checkpoints doesn't exist! Creating directory '" + CHECKPOINT_DIRECTORY +     "/'")
+        print("Directory for checkpoints doesn't exist! Creating directory '" + CHECKPOINT_DIRECTORY + "/'")
         os.makedirs(CHECKPOINT_DIRECTORY)
     else:
-        print("Checkpoints will be saved to '%s'" %(CHECKPOINT_DIRECTORY+"/"))    
+        print("Checkpoints will be saved to '%s'" % (CHECKPOINT_DIRECTORY + "/"))
 
  
     x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS), name='input')
@@ -324,9 +80,9 @@ if __name__ == '__main__':
     keep_prob = tf.placeholder(tf.float32)
 
     cats = ['abbey', 'playground']
-    train_data, train_labels, train_files = get_files('train', cats, n=IMAGES_PER_CAT)
+    train_data, train_labels, train_files = get_files('train', all_categories, cats, n=IMAGES_PER_CAT)
     train_size = len(train_files)
-    val_data, val_labels, val_files = get_files('val', cats)
+    val_data, val_labels, val_files = get_files('val', all_categories, cats)
 
     logits, variables = alexnet(x, keep_prob)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
@@ -393,8 +149,8 @@ if __name__ == '__main__':
                 elapsed_time = time.time() - start_time
                 start_time = time.time()
                 print('Step %d (epoch %.2f), %.1f ms' %
-                        (step, float(step) * BATCH_SIZE / train_size,
-                            1000 * elapsed_time / EVAL_FREQUENCY))
+                      (step, float(step) * BATCH_SIZE / train_size,
+                       1000 * elapsed_time / EVAL_FREQUENCY))
                 print('\tMinibatch loss: %.3f, learning rate: %.6f' % (l, my_learning_rate))
                 print('\tMinibatch accuracy: %.1f%%' % (100 * accuracy(predictions, _labels)))
                 print('\tValidation loss: %.3f Validation accuracy: %.1f%% \n' % (val_l, 100 * accuracy(val_predictions, val_labels_sample)))
@@ -402,8 +158,9 @@ if __name__ == '__main__':
             
 
             if step % args.checkpoint_frequency == 0:
-                print("\tSaving state to %s......"% (CHECKPOINT_DIRECTORY+"/"+args.checkpoint_label+"-"+str(step)))
-                saver.save(sess, CHECKPOINT_DIRECTORY+"/"+args.checkpoint_label, global_step = step)
+                print("\tSaving state to %s......" % (
+                CHECKPOINT_DIRECTORY + "/" + args.checkpoint_label + "-" + str(step)))
+                saver.save(sess, CHECKPOINT_DIRECTORY + "/" + args.checkpoint_label, global_step = step)
                 print("\tSuccess!\n")
 
         coord.request_stop()
@@ -418,7 +175,7 @@ if __name__ == '__main__':
 #     train_size = len(train_files)
 #     val_data, val_labels, val_files = get_files('val', cats)
 #
-#     logits, variables = model(x)
+#     logits, variables = briannet(x)
 #     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
 #     regularizers = sum(map(tf.nn.l2_loss, variables['ff_w'] + variables['ff_b']))
 #     loss += 1e-6 * regularizers
