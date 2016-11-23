@@ -11,7 +11,7 @@ import logger
 # all prints
 from constants import IMAGES_PER_CAT, BATCH_SIZE, IMAGE_SIZE, NUM_CHANNELS, NUM_EPOCHS, KEEP_PROB, \
     USE_GPU, TYPE, EVAL_FREQUENCY, CHECKPOINT_DIRECTORY
-from models import alexnet
+from models import alexnet, briannet
 from util import get_categories, get_files
 
 timestamp = time.strftime("%Y-%m-%d_%H:%M:%S")
@@ -46,11 +46,18 @@ def accuracy(predictions, labels, k=1):
     return tf.reduce_mean(tf.cast(correct, tf.float32)).eval()
 
 
-# TODO: I was lazy, so I will just comment out all the code for Brian's model. Will refactor once I figure out
-# how to disentangle the stuff. Main blocker: regularizers.
+cats = []
+learning_rate = 0.002 # TODO: I need to figure out how to print out the learning rate
+optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate) # TODO: better variable naming
+# keep_prob = tf.placeholder(tf.float32)
+# val_feed_dict_supp = {keep_prob: 1.}
+# train_feed_dict_supp = {keep_prob: KEEP_PROB}
+# model = lambda v: alexnet(v, keep_prob)
+val_feed_dict_supp = {}
+train_feed_dict_supp = {}
+model = briannet
 
 if __name__ == '__main__':
-    (all_categories, category_to_index) = get_categories()
 
     parser = argparse.ArgumentParser()
 
@@ -67,31 +74,27 @@ if __name__ == '__main__':
     print("Description:")
     print("\t"+args.description+"\n")
     print("Saving every %d steps, keeping a maximum of %d old checkpoints but keeping one checkpoint every %d hours." % (args.checkpoint_frequency, args.checkpoint_max_keep, args.checkpoint_hours))
-   
+
     if not os.path.exists(CHECKPOINT_DIRECTORY):
         print("Directory for checkpoints doesn't exist! Creating directory '" + CHECKPOINT_DIRECTORY + "/'")
         os.makedirs(CHECKPOINT_DIRECTORY)
     else:
         print("Checkpoints will be saved to '%s'" % (CHECKPOINT_DIRECTORY + "/"))
 
- 
+    (all_categories, category_to_index) = get_categories()
+
     x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS), name='input')
     y = tf.placeholder(tf.int32, shape=(BATCH_SIZE,), name='labels')
-    keep_prob = tf.placeholder(tf.float32)
 
-    cats = ['abbey', 'playground']
     train_data, train_labels, train_files = get_files('train', all_categories, cats, n=IMAGES_PER_CAT)
     train_size = len(train_files)
     val_data, val_labels, val_files = get_files('val', all_categories, cats)
 
-    logits, variables = alexnet(x, keep_prob)
+    logits, variables = model(x)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
+    optimizer_op = optimizer.minimize(loss) # TODO: move this out somewhere?
 
-    batch = tf.Variable(0, dtype=TYPE)
-    my_learning_rate = 0.002
-    optimizer = tf.train.AdamOptimizer(learning_rate=my_learning_rate).minimize(loss)
-
-    train_prediction = tf.nn.softmax(logits)
+    prediction = tf.nn.softmax(logits)
 
     batch_data, batch_labels = tf.train.batch(
             [train_data, train_labels],
@@ -118,7 +121,8 @@ if __name__ == '__main__':
         print('Initialized!')
 
         val_data_sample, val_labels_sample = sess.run([batch_val_data, batch_val_labels])
-        val_feed_dict = {x: val_data_sample, y: val_labels_sample, keep_prob: 1.}
+        val_feed_dict = {x: val_data_sample, y: val_labels_sample}
+        val_feed_dict.update(val_feed_dict_supp)
 
         # unsure this is the right place to restore variable states
         if args.load_file:
@@ -131,29 +135,30 @@ if __name__ == '__main__':
 
             # This dictionary maps the batch data (as a numpy array) to the
             # node in the graph it should be fed to.
-            feed_dict = {
-                x: _data,
-                y: _labels,
-                keep_prob: KEEP_PROB
-            }
+            train_feed_dict = {x: _data, y: _labels}
+            train_feed_dict.update(train_feed_dict_supp)
             # Run the optimizer to update weights.
-            sess.run(optimizer, feed_dict=feed_dict)
+            sess.run(optimizer_op, feed_dict=train_feed_dict)
 
             # print some extra information once reach the evaluation frequency
             if step % EVAL_FREQUENCY == 0:
                 # fetch some extra nodes' data
-                l, predictions = sess.run([loss, train_prediction],
-                        feed_dict=feed_dict)
-                val_l, val_predictions = sess.run([loss, train_prediction],
-                        feed_dict=val_feed_dict)
+                train_l, train_predictions = sess.run([loss, prediction],
+                                                      feed_dict=train_feed_dict)
+                val_l, val_predictions = sess.run([loss, prediction],
+                                                  feed_dict=val_feed_dict)
                 elapsed_time = time.time() - start_time
                 start_time = time.time()
                 print('Step %d (epoch %.2f), %.1f ms' %
                       (step, float(step) * BATCH_SIZE / train_size,
                        1000 * elapsed_time / EVAL_FREQUENCY))
-                print('\tMinibatch loss: %.3f, learning rate: %.6f' % (l, my_learning_rate))
-                print('\tMinibatch accuracy: %.1f%%' % (100 * accuracy(predictions, _labels)))
-                print('\tValidation loss: %.3f Validation accuracy: %.1f%% \n' % (val_l, 100 * accuracy(val_predictions, val_labels_sample)))
+                print('\tMinibatch loss: %.3f' % (train_l))
+                print('\tLearning rate: %.6f' % (learning_rate))
+                print('\tMinibatch top-1 accuracy: %.1f%%, Minibatch top-5 accuracy: %.1f%%' %
+                      (100 * accuracy(train_predictions, _labels), 100 * accuracy(train_predictions, _labels, k=5)))
+                print('\tValidation loss: %.3f' % (val_l))
+                print('\tValidation top-1 accuracy: %.1f%%, Validation top-5 accuracy: %.1f%%' %
+                      (100 * accuracy(val_predictions, val_labels_sample), 100 * accuracy(val_predictions, val_labels_sample, k=5)))
                 sys.stdout.flush()
             
 

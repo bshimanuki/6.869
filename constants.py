@@ -12,5 +12,5 @@ USE_GPU = True
 TYPE = tf.float32
 LABEL_TYPE = tf.int32
 DATA_PREFIX = 'data/images/'
-EVAL_FREQUENCY = 1
+EVAL_FREQUENCY = 10
 CHECKPOINT_DIRECTORY = 'checkpoints'
