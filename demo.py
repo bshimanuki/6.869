@@ -79,8 +79,8 @@ def accuracy(predictions, labels, name=None, k=1):
     with tf.name_scope('accuracy'):
         correct = tf.nn.in_top_k(predictions, labels, k)
         print('\t', Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
-        # accuracy = tf.reduce_mean(tf.cast(correct, tf.float32)).eval()
-        tf.scalar_summary('accuracy/' + name, accuracy)
+        accuracy = tf.reduce_mean(tf.cast(correct, tf.float32)).eval()
+        # tf.scalar_summary('accuracy/' + name, accuracy)
         return accuracy
 
 def weight_variable(shape, name=None):
@@ -92,13 +92,13 @@ def weight_variable(shape, name=None):
                     seed=SEED,
                     dtype=TYPE),
                 name=name)
-        tf.scalar_summary('weight/' + name, weight)
+        tf.histogram_summary('weight/' + name, weight)
         return weight
 
 def bias_variable(shape, name=None):
     with tf.name_scope('bias'):
         bias = tf.Variable(tf.zeros(shape=shape, dtype=TYPE), name=name)
-        tf.scalar_summary('bias/' + name, bias)
+        tf.histogram_summary('bias/' + name, bias)
         return bias
 
 def conv_layer(input_layer, depth, window, pool=None, name=None, variables=None):
@@ -184,7 +184,7 @@ if __name__ == '__main__':
     with tf.Session(config=config) as sess:
         # Initialize writer for TensorBoard
         merged = tf.merge_all_summaries()
-        train_writer = tf.train.SummaryWriter(PATH_TO_LOGS, graph=tf.get_default_graph())
+        train_writer = tf.train.SummaryWriter(PATH_TO_LOGS, graph=sess.graph)
 
         # Run all the initializers to prepare the trainable parameters.
         sess.run(tf.initialize_all_variables())
@@ -209,13 +209,13 @@ if __name__ == '__main__':
             # print some extra information once reach the evaluation frequency
             if step % EVAL_FREQUENCY == 0:
                 # fetch some extra nodes' data
-                l, r, lr, predictions = sess.run([loss, regularizers, learning_rate, train_prediction],
+                l, r, lr, predictions, summary = sess.run([loss, regularizers, learning_rate, train_prediction, merged],
                         feed_dict=feed_dict)
                 val_l, val_predictions = sess.run([loss, train_prediction],
                         feed_dict=val_feed_dict)
 
                 # Run and add TensorBoard summaries
-                summary = sess.run([merged]) # TODO: what feed_dict to pass?
+                # summary = sess.run([merged]) # TODO: what feed_dict to pass?
                 train_writer.add_summary(summary, step)
 
                 elapsed_time = time.time() - start_time
