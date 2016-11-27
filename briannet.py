@@ -13,24 +13,8 @@ class BrianNet(Model):
         :param data: the batched input images
         """
         variables = defaultdict(list)
-        conv = conv_layer(
-            data, 
-            depth=64, 
-            stride=1, 
-            window=5, 
-            pool=(2, 2), 
-            name='conv1', 
-            variables=variables
-        )
-        conv = conv_layer(
-            conv, 
-            depth=32, 
-            stride=1, 
-            window=5, 
-            pool=(2, 2), 
-            name='conv2', 
-            variables=variables
-        )
+        conv = conv_layer(data, depth=64, window=5, pool=(2, 2), name='conv1', variables=variables)
+        conv = conv_layer(conv, depth=32, window=5, pool=(2, 2), name='conv2', variables=variables)
         reshape = conv_to_ff_layer(conv)
         hidden = ff_layer(
             reshape, 

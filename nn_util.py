@@ -34,7 +34,8 @@ def bias_variable(shape, name=None):
         return bias
 
 
-def conv_layer(input_layer, depth, stride, window, activation_fn=tf.nn.sigmoid, pool=None, lrn=None, name=None, variables=None):
+def conv_layer(input_layer, depth, window, stride=1, activation_fn=tf.nn.sigmoid, pool=None, lrn=None, name=None,
+               variables=None):
     """Construct a convolutional layer which takes input_layer as input.
 
     input_layer -> output
