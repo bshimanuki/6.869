@@ -1,8 +1,8 @@
 import os
 import tensorflow as tf
 
-IMAGES_PER_CAT = 200 # TODO: return to None
-BATCH_SIZE = 20 # TODO: return to 200
+IMAGES_PER_CAT = None # TODO: return to None
+BATCH_SIZE = 200 # TODO: return to 200
 IMAGE_IMPORT_SIZE = 128
 IMAGE_RESIZE_SIZE = 256
 IMAGE_FINE_SIZE = 224
