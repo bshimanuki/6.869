@@ -18,21 +18,19 @@ def weight_variable(shape, name=None):
     """
     sigma=np.sqrt(2./np.product(shape[:-1]))
     with tf.name_scope('weight'):
-        weight = tf.Variable(
-                tf.truncated_normal(
-                    shape,
-                    stddev=sigma,
-                    seed=SEED,
-                    dtype=TYPE),
-                name=name)
-        tf.histogram_summary('weight/' + name, weight)
+        weight = tf.Variable(tf.truncated_normal(
+            shape,
+            stddev=sigma,
+            seed=SEED,
+            dtype=TYPE))
+        tf.histogram_summary('%s/weight' % (name if name is not None else ''), weight)
         return weight
 
 
 def bias_variable(shape, name=None):
     with tf.name_scope('bias'):
-        bias = tf.Variable(tf.zeros(shape=shape, dtype=TYPE), name=name)
-        tf.histogram_summary('bias/' + name, bias)
+        bias = tf.Variable(tf.zeros(shape=shape, dtype=TYPE))
+        tf.histogram_summary('%s/bias' % (name if name is not None else ''), bias)
         return bias
 
 
@@ -51,15 +49,13 @@ def conv_layer(input_layer, depth, stride, window, activation_fn=tf.nn.sigmoid, 
     :param name:
     :param variables: dict with keys conv_w and conv_b to add weight and bias variables to
     """
-    with tf.name_scope('conv_layer'):
+    with tf.name_scope(name):
         assert(input_layer.get_shape().ndims == 4)
-        w_name = None if name is None else name + '_w'
-        b_name = None if name is None else name + '_b'
-        w = weight_variable([window, window, input_layer.get_shape().as_list()[-1], depth], w_name)
-        b = bias_variable([depth], b_name)
+        w = weight_variable([window, window, input_layer.get_shape().as_list()[-1], depth], name)
+        b = bias_variable([depth], name)
         conv = tf.nn.conv2d(input_layer, w, strides=[1, stride, stride, 1], padding='SAME') + b
         # Note: Sample code seems to use tf.nn.bias_add instead of straight addition here.
-        with tf.name_scope('conv_layer_output'):
+        with tf.name_scope('output/' + name):
             output = activation_fn(conv)
             if lrn is not None:
                 (lrn_depth_radius, lrn_bias, lrn_alpha, lrn_beta) = lrn
@@ -76,6 +72,7 @@ def conv_layer(input_layer, depth, stride, window, activation_fn=tf.nn.sigmoid, 
         if variables is not None:
             variables['conv_w'].append(w)
             variables['conv_b'].append(b)
+        tf.histogram_summary('%s/activation' % (name if name is not None else ''), output)
         return output
 
 
@@ -93,13 +90,11 @@ def ff_layer(input_layer, depth, activation_fn=tf.nn.sigmoid, dropout=None, name
     :param activation: boolean for whether to use the activation function (should be False for last layer)
     :param variables: dict with keys ff_w and ff_b to add weight and bias variables to
     """
-    with tf.name_scope('ff_layer'):
+    with tf.name_scope(name):
         assert(input_layer.get_shape().ndims == 2)
-        w_name = None if name is None else name + '_w'
-        b_name = None if name is None else name + '_b'
-        w = weight_variable([input_layer.get_shape().as_list()[-1], depth], w_name)
-        b = bias_variable([depth], b_name)
-        with tf.name_scope('ff_layer_hidden'):
+        w = weight_variable([input_layer.get_shape().as_list()[-1], depth], name)
+        b = bias_variable([depth], name)
+        with tf.name_scope('hidden/' + name):
             hidden = tf.matmul(input_layer, w) + b
             if activation:
                 # TODO: potentially change this to just passign in an identity as the activation function
@@ -110,6 +105,7 @@ def ff_layer(input_layer, depth, activation_fn=tf.nn.sigmoid, dropout=None, name
         if variables is not None:
             variables['ff_w'].append(w)
             variables['ff_b'].append(b)
+        tf.histogram_summary('%s/hidden' % (name if name is not None else ''), hidden)
         return hidden
 
 

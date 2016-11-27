@@ -1,3 +1,4 @@
+import os
 import tensorflow as tf
 
 IMAGES_PER_CAT = 200
@@ -8,10 +9,13 @@ NUM_LABELS = 100
 NUM_EPOCHS = 30
 SEED = 1234
 KEEP_PROB = 0.5
+EVAL_FREQUENCY = 10
 USE_GPU = True
 TYPE = tf.float32
 LABEL_TYPE = tf.int32
-DATA_PREFIX = 'data/images/'
-EVAL_FREQUENCY = 10
-CHECKPOINT_DIRECTORY = 'checkpoints'
-PATH_TO_LOGS = 'tb_logs/'
+
+PWD = os.path.dirname(__file__) + '/'
+DATA_DIR = PWD + 'data/images/'
+CHECKPOINT_DIRECTORY = PWD + 'checkpoints/'
+LOGS_DIR = PWD + 'logs/'
+TB_LOGS_DIR = PWD + 'tb_logs/'

@@ -15,13 +15,13 @@ from util import accuracy, get_categories, get_files
 timestamp = time.strftime("%Y-%m-%d_%H:%M:%S")
 
 # print to save to full log and console
-full_log = logger.createLogger("logs/full_output__" + timestamp + ".log", "all outputs", True)
+full_log = logger.createLogger(LOGS_DIR + "full_output__" + timestamp + ".log", "all outputs", True)
 print = full_log.info
 githashval = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode('UTF-8')[:-1]
 
 # call log.info to save to proper log
-log = logger.createLogger("logs/log__" + timestamp + ".log", "logs to keep", False)
-param_log_name = "logs/save" + githashval + "__" + timestamp +".log"
+log = logger.createLogger(LOGS_DIR + "log__" + timestamp + ".log", "logs to keep", False)
+param_log_name = LOGS_DIR + "save" + githashval + "__" + timestamp +".log"
 # param_log = logger.createLogger(param_log_name, "parameters", True)
 
 import tensorflow as tf
@@ -45,10 +45,10 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
     if args.checkpoint_frequency:
         print("Saving every %d steps, keeping a maximum of %d old checkpoints but keeping one checkpoint every %d hours." % (args.checkpoint_frequency, args.checkpoint_max_keep, args.checkpoint_hours))
         if not os.path.exists(CHECKPOINT_DIRECTORY):
-            print("Directory for checkpoints doesn't exist! Creating directory '" + CHECKPOINT_DIRECTORY + "/'")
+            print("Directory for checkpoints doesn't exist! Creating directory '%s'" % CHECKPOINT_DIRECTORY)
             os.makedirs(CHECKPOINT_DIRECTORY)
         else:
-            print("Checkpoints will be saved to '%s'" % (CHECKPOINT_DIRECTORY + "/"))
+            print("Checkpoints will be saved to '%s'" % CHECKPOINT_DIRECTORY)
     else:
         print("Not saving checkpoints.")
 
@@ -63,14 +63,19 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
 
     logits, variables = model(x)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
+    loss_summary = tf.scalar_summary('Loss', loss)
     optimizer_op = optimizer.minimize(loss)
 
     prediction = tf.nn.softmax(logits)
 
     with tf.name_scope('top1'):
         accuracy_1 = 100 * accuracy(logits, y)
+        accuracy_1_summary = tf.scalar_summary('Top 1 Accuracy', accuracy_1)
     with tf.name_scope('top5'):
         accuracy_5 = 100 * accuracy(logits, y, k=5)
+        accuracy_5_summary = tf.scalar_summary('Top 5 Accuracy', accuracy_5)
+
+    metric_summaries = tf.merge_summary([loss_summary, accuracy_1_summary, accuracy_5_summary])
 
     batch_data, batch_labels = tf.train.batch(
             [train_data, train_labels],
@@ -92,7 +97,8 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
     with tf.Session(config=config) as sess:
         # Initialize summary writer for TensorBoard
         merged = tf.merge_all_summaries()
-        train_writer = tf.train.SummaryWriter(PATH_TO_LOGS, graph=sess.graph)
+        train_writer = tf.train.SummaryWriter(TB_LOGS_DIR + 'training/', graph=sess.graph)
+        val_writer = tf.train.SummaryWriter(TB_LOGS_DIR + 'validation/')
 
         # Run all the initializers to prepare the trainable parameters.
         sess.run(tf.initialize_all_variables())
@@ -121,17 +127,22 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
             sess.run(optimizer_op, feed_dict=train_feed_dict)
 
             # print some extra information once reach the evaluation frequency
-            if step % EVAL_FREQUENCY == 0:
+            if step % EVAL_FREQUENCY == 0 and step > 0:
                 # fetch some extra nodes' data
-                train_l, train_predictions, minibatch_top1, minibatch_top5, summary = sess.run(
+                train_l, train_predictions, minibatch_top1, minibatch_top5, train_summary = sess.run(
                         [loss, prediction, accuracy_1, accuracy_5, merged],
                         feed_dict=train_feed_dict) # TODO: correct feed dict for summary?
-                val_l, val_predictions, val_top1, val_top5 = sess.run(
-                        [loss, prediction, accuracy_1, accuracy_5],
+
+                # calculate validation set metrics
+                val_l, val_predictions, val_top1, val_top5, val_summary = sess.run(
+                        [loss, prediction, accuracy_1, accuracy_5, metric_summaries],
                         feed_dict=val_feed_dict)
 
                 # Add TensorBoard summary to summary writer
-                train_writer.add_summary(summary, step)
+                train_writer.add_summary(train_summary, step)
+                train_writer.flush()
+                val_writer.add_summary(val_summary, step)
+                val_writer.flush()
 
                 # Print info/stats
                 elapsed_time = time.time() - start_time
@@ -152,8 +163,8 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
 
             if args.checkpoint_frequency and step % args.checkpoint_frequency == 0:
                 print("\tSaving state to %s......" % (
-                CHECKPOINT_DIRECTORY + "/" + args.checkpoint_label + "-" + str(step)))
-                saver.save(sess, CHECKPOINT_DIRECTORY + "/" + args.checkpoint_label, global_step = step)
+                CHECKPOINT_DIRECTORY + args.checkpoint_label + "-" + str(step)))
+                saver.save(sess, CHECKPOINT_DIRECTORY + args.checkpoint_label, global_step = step)
                 print("\tSuccess!\n")
 
         coord.request_stop()
@@ -173,5 +184,5 @@ if __name__ == '__main__':
     # run([], 0.002, optimizer, {}, {}, briannet)
 
     ### Example when running AlexNet
-    keep_prob = tf.placeholder(tf.float32) # we need to define a probability for the dropout
+    keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout
     run([], 0.002, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model = lambda v: alexnet(v, keep_prob))

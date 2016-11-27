@@ -3,7 +3,7 @@ from collections import Counter
 import numpy as np
 import tensorflow as tf
 
-from constants import DATA_PREFIX, NUM_CHANNELS, TYPE, IMAGE_SIZE
+from constants import DATA_DIR, NUM_CHANNELS, TYPE, IMAGE_SIZE
 
 
 def get_categories():
@@ -43,7 +43,7 @@ def get_files(partition, all_categories, target_categories=[], n=None):
             """
             if not target_categories or all_categories[cat] in target_categories:
                 if n is None or num <= n:
-                    files.append(DATA_PREFIX + name)
+                    files.append(DATA_DIR + name)
                     labels.append(cat)
     queue = tf.train.slice_input_producer([files, labels], shuffle=True)
     images = tf.read_file(queue[0])
