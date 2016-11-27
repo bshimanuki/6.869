@@ -1,0 +1,16 @@
+import tensorflow as tf
+
+IMAGES_PER_CAT = 200
+BATCH_SIZE = 10 # TODO: return to 200
+IMAGE_SIZE = 128
+NUM_CHANNELS = 3
+NUM_LABELS = 100
+NUM_EPOCHS = 30
+SEED = 1234
+KEEP_PROB = 0.5
+USE_GPU = True
+TYPE = tf.float32
+LABEL_TYPE = tf.int32
+DATA_PREFIX = 'data/images/'
+EVAL_FREQUENCY = 10
+CHECKPOINT_DIRECTORY = 'checkpoints'

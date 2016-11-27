@@ -1,6 +1,8 @@
 /data
 /matconvnet
 /miniplacesCNN
+/logs
+/checkpoints
 __pycache__
 *.pyc
 
