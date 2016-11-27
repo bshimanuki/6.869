@@ -118,26 +118,35 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
             if step % EVAL_FREQUENCY == 0:
                 # fetch some extra nodes' data
                 train_l, train_predictions, summary = sess.run([loss, prediction, merged],
-                                                      feed_dict=train_feed_dict) # TODO: correct feed dict for summary?
+                                                    feed_dict=train_feed_dict) # TODO: correct feed dict for summary?
                 val_l, val_predictions = sess.run([loss, prediction],
-                                                  feed_dict=val_feed_dict)
+                                                    feed_dict=val_feed_dict)
 
                 # Add TensorBoard summary to summary writer
                 train_writer.add_summary(summary, step)
 
-                # Output info/stats
+                # Print info/stats
                 elapsed_time = time.time() - start_time
                 start_time = time.time()
+                with tf.name_scope('train_top1'):
+                    minibatch_top1 = 100 * accuracy(train_predictions, _labels)
+                with tf.name_scope('train_top5'):
+                    minibatch_top5 = 100 * accuracy(train_predictions, _labels, k=5)
+                with tf.name_scope('val_top1'):
+                    val_top1 = 100 * accuracy(val_predictions, val_labels_sample)
+                with tf.name_scope('val_top5'):
+                    val_top5 = 100 * accuracy(val_predictions, val_labels_sample, k=5)
+
                 print('Step %d (epoch %.2f), %.1f ms' %
                       (step, float(step) * BATCH_SIZE / train_size,
                        1000 * elapsed_time / EVAL_FREQUENCY))
                 print('\tMinibatch loss: %.3f' % (train_l))
                 print('\tLearning rate: %.6f' % (learning_rate))
                 print('\tMinibatch top-1 accuracy: %.1f%%, Minibatch top-5 accuracy: %.1f%%' %
-                      (100 * accuracy(train_predictions, _labels), 100 * accuracy(train_predictions, _labels, k=5)))
+                      (minibatch_top1, minibatch_top5))
                 print('\tValidation loss: %.3f' % (val_l))
                 print('\tValidation top-1 accuracy: %.1f%%, Validation top-5 accuracy: %.1f%%' %
-                      (100 * accuracy(val_predictions, val_labels_sample), 100 * accuracy(val_predictions, val_labels_sample, k=5)))
+                      (val_top1, val_top5))
                 sys.stdout.flush()
             
 
