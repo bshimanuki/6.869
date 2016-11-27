@@ -14,3 +14,4 @@ LABEL_TYPE = tf.int32
 DATA_PREFIX = 'data/images/'
 EVAL_FREQUENCY = 10
 CHECKPOINT_DIRECTORY = 'checkpoints'
+PATH_TO_LOGS = 'tb_logs/'

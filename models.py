@@ -87,7 +87,7 @@ def alexnet(data, keep_prob):
         depth=4096,
         activation_fn = tf.nn.relu,
         dropout = keep_prob,
-        name='fc6',
+        name='fc7',
         variables=variables
     )
     output = ff_layer(fc7, depth=NUM_LABELS, name='output', activation=False, variables=variables)

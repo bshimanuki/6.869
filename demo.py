@@ -9,7 +9,7 @@ import time
 import logger
 # all prints
 from constants import IMAGES_PER_CAT, BATCH_SIZE, IMAGE_SIZE, NUM_CHANNELS, NUM_EPOCHS, KEEP_PROB, \
-    USE_GPU, TYPE, EVAL_FREQUENCY, CHECKPOINT_DIRECTORY
+    USE_GPU, TYPE, EVAL_FREQUENCY, CHECKPOINT_DIRECTORY, PATH_TO_LOGS
 from models import alexnet
 from util import accuracy, get_categories, get_files
 
@@ -84,6 +84,10 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
     saver = tf.train.Saver(max_to_keep = args.checkpoint_max_keep, keep_checkpoint_every_n_hours = args.checkpoint_hours)
 
     with tf.Session(config=config) as sess:
+        # Initialize summary writer for TensorBoard
+        merged = tf.merge_all_summaries()
+        train_writer = tf.train.SummaryWriter(PATH_TO_LOGS, graph=sess.graph)
+
         # Run all the initializers to prepare the trainable parameters.
         sess.run(tf.initialize_all_variables())
         coord = tf.train.Coordinator()
@@ -113,10 +117,15 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
             # print some extra information once reach the evaluation frequency
             if step % EVAL_FREQUENCY == 0:
                 # fetch some extra nodes' data
-                train_l, train_predictions = sess.run([loss, prediction],
-                                                      feed_dict=train_feed_dict)
+                train_l, train_predictions, summary = sess.run([loss, prediction, merged],
+                                                      feed_dict=train_feed_dict) # TODO: correct feed dict for summary?
                 val_l, val_predictions = sess.run([loss, prediction],
                                                   feed_dict=val_feed_dict)
+
+                # Add TensorBoard summary to summary writer
+                train_writer.add_summary(summary, step)
+
+                # Output info/stats
                 elapsed_time = time.time() - start_time
                 start_time = time.time()
                 print('Step %d (epoch %.2f), %.1f ms' %
