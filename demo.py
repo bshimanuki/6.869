@@ -115,6 +115,9 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         print('Initialized!')
 
+        # print(sess.run([tf.reduce_max(batch_data)]))
+        # print(sess.run([tf.reduce_min(batch_data)]))
+
         val_data_sample, val_labels_sample = sess.run([batch_val_data, batch_val_labels])
         val_feed_dict = {x: val_data_sample, y: val_labels_sample}
         val_feed_dict.update(val_feed_dict_supp)
@@ -195,4 +198,4 @@ if __name__ == '__main__':
 
     ### Example when running AlexNet
     keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout
-    run(cats, 0.002, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=AlexNet(keep_prob))
+    run(cats, 0.001, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=AlexNet(keep_prob))

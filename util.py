@@ -39,6 +39,7 @@ def get_input(partition, all_categories, target_categories=[], n=None):
     image = tf.image.resize_images(image, [IMAGE_RESIZE_SIZE, IMAGE_RESIZE_SIZE])
     image = tf.image.random_ops.random_crop(image, [IMAGE_FINE_SIZE, IMAGE_FINE_SIZE, NUM_CHANNELS], seed=SEED)
     image = tf.image.random_flip_left_right(image, seed=SEED)
+    image = image / 255 # Convert pixel values to 0-1
     image = image - IMAGE_MEAN # TODO: someone sanity check me here please?
     # image.set_shape((IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS))
     return image, label
