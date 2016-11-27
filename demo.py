@@ -8,8 +8,7 @@ import time
 
 import logger
 # all prints
-from constants import IMAGES_PER_CAT, BATCH_SIZE, IMAGE_SIZE, NUM_CHANNELS, NUM_EPOCHS, KEEP_PROB, \
-    USE_GPU, TYPE, EVAL_FREQUENCY, CHECKPOINT_DIRECTORY, PATH_TO_LOGS
+from constants import *
 from models import alexnet
 from util import accuracy, get_categories, get_files
 
@@ -43,13 +42,15 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
     print("Starting Training......Git commit : %s\n Model: TODO\n"%githashval)
     print("Description:")
     print("\t"+args.description+"\n")
-    print("Saving every %d steps, keeping a maximum of %d old checkpoints but keeping one checkpoint every %d hours." % (args.checkpoint_frequency, args.checkpoint_max_keep, args.checkpoint_hours))
-
-    if not os.path.exists(CHECKPOINT_DIRECTORY):
-        print("Directory for checkpoints doesn't exist! Creating directory '" + CHECKPOINT_DIRECTORY + "/'")
-        os.makedirs(CHECKPOINT_DIRECTORY)
+    if args.checkpoint_frequency:
+        print("Saving every %d steps, keeping a maximum of %d old checkpoints but keeping one checkpoint every %d hours." % (args.checkpoint_frequency, args.checkpoint_max_keep, args.checkpoint_hours))
+        if not os.path.exists(CHECKPOINT_DIRECTORY):
+            print("Directory for checkpoints doesn't exist! Creating directory '" + CHECKPOINT_DIRECTORY + "/'")
+            os.makedirs(CHECKPOINT_DIRECTORY)
+        else:
+            print("Checkpoints will be saved to '%s'" % (CHECKPOINT_DIRECTORY + "/"))
     else:
-        print("Checkpoints will be saved to '%s'" % (CHECKPOINT_DIRECTORY + "/"))
+        print("Not saving checkpoints.")
 
     (all_categories, category_to_index) = get_categories()
 
@@ -66,6 +67,11 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
 
     prediction = tf.nn.softmax(logits)
 
+    with tf.name_scope('top1'):
+        accuracy_1 = 100 * accuracy(logits, y)
+    with tf.name_scope('top5'):
+        accuracy_5 = 100 * accuracy(logits, y, k=5)
+
     batch_data, batch_labels = tf.train.batch(
             [train_data, train_labels],
             batch_size=BATCH_SIZE)
@@ -80,7 +86,7 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
     else:
         config = tf.ConfigProto(device_count={'GPU': 0})
     # config.operation_timeout_in_ms = 2000
-    
+
     saver = tf.train.Saver(max_to_keep = args.checkpoint_max_keep, keep_checkpoint_every_n_hours = args.checkpoint_hours)
 
     with tf.Session(config=config) as sess:
@@ -117,10 +123,12 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
             # print some extra information once reach the evaluation frequency
             if step % EVAL_FREQUENCY == 0:
                 # fetch some extra nodes' data
-                train_l, train_predictions, summary = sess.run([loss, prediction, merged],
-                                                    feed_dict=train_feed_dict) # TODO: correct feed dict for summary?
-                val_l, val_predictions = sess.run([loss, prediction],
-                                                    feed_dict=val_feed_dict)
+                train_l, train_predictions, minibatch_top1, minibatch_top5, summary = sess.run(
+                        [loss, prediction, accuracy_1, accuracy_5, merged],
+                        feed_dict=train_feed_dict) # TODO: correct feed dict for summary?
+                val_l, val_predictions, val_top1, val_top5 = sess.run(
+                        [loss, prediction, accuracy_1, accuracy_5],
+                        feed_dict=val_feed_dict)
 
                 # Add TensorBoard summary to summary writer
                 train_writer.add_summary(summary, step)
@@ -128,14 +136,6 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
                 # Print info/stats
                 elapsed_time = time.time() - start_time
                 start_time = time.time()
-                with tf.name_scope('train_top1'):
-                    minibatch_top1 = 100 * accuracy(train_predictions, _labels)
-                with tf.name_scope('train_top5'):
-                    minibatch_top5 = 100 * accuracy(train_predictions, _labels, k=5)
-                with tf.name_scope('val_top1'):
-                    val_top1 = 100 * accuracy(val_predictions, val_labels_sample)
-                with tf.name_scope('val_top5'):
-                    val_top5 = 100 * accuracy(val_predictions, val_labels_sample, k=5)
 
                 print('Step %d (epoch %.2f), %.1f ms' %
                       (step, float(step) * BATCH_SIZE / train_size,
@@ -148,9 +148,9 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
                 print('\tValidation top-1 accuracy: %.1f%%, Validation top-5 accuracy: %.1f%%' %
                       (val_top1, val_top5))
                 sys.stdout.flush()
-            
 
-            if step % args.checkpoint_frequency == 0:
+
+            if args.checkpoint_frequency and step % args.checkpoint_frequency == 0:
                 print("\tSaving state to %s......" % (
                 CHECKPOINT_DIRECTORY + "/" + args.checkpoint_label + "-" + str(step)))
                 saver.save(sess, CHECKPOINT_DIRECTORY + "/" + args.checkpoint_label, global_step = step)

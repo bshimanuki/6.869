@@ -63,8 +63,8 @@ def accuracy(predictions, labels, k=1):
         that an example corresponds to a given class.
     :param labels: batch_size vector of class ids.
     :param k:
-    :return: Proportion of accurate predictions.
+    :return: Proportion of accurate predictions, as a 0-dimensional tensor.
     """
     correct = tf.nn.in_top_k(predictions, labels, k)
-    print('\t', Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
-    return tf.reduce_mean(tf.cast(correct, tf.float32)).eval()
+    # print('\t', Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
+    return tf.reduce_mean(tf.cast(correct, tf.float32))
