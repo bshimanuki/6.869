@@ -1,12 +1,12 @@
 import os
 import tensorflow as tf
 
-IMAGES_PER_CAT = 200
-BATCH_SIZE = 10 # TODO: return to 200
+IMAGES_PER_CAT = 200 # TODO: return to None
+BATCH_SIZE = 100 # TODO: return to 200
 IMAGE_SIZE = 128
 NUM_CHANNELS = 3
 NUM_LABELS = 100
-NUM_EPOCHS = 30
+NUM_EPOCHS = 100
 SEED = 1234
 KEEP_PROB = 0.5
 EVAL_FREQUENCY = 10

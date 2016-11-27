@@ -9,19 +9,23 @@ import time
 import logger
 # all prints
 from constants import *
-from models import alexnet
+from model import Model
 from util import accuracy, get_categories, get_files
+
+from alexnet import AlexNet
+from briannet import BrianNet
 
 timestamp = time.strftime("%Y-%m-%d_%H:%M:%S")
 
 # print to save to full log and console
 full_log = logger.createLogger(LOGS_DIR + "full_output__" + timestamp + ".log", "all outputs", True)
 print = full_log.info
-githashval = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode('UTF-8')[:-1]
+# short git hash
+githashval = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode('UTF-8')[:7]
 
 # call log.info to save to proper log
 log = logger.createLogger(LOGS_DIR + "log__" + timestamp + ".log", "logs to keep", False)
-param_log_name = LOGS_DIR + "save" + githashval + "__" + timestamp +".log"
+param_log_name = LOGS_DIR + "save__" + timestamp + "__" + githashval + ".log"
 # param_log = logger.createLogger(param_log_name, "parameters", True)
 
 import tensorflow as tf
@@ -35,7 +39,7 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
     parser.add_argument("-k", "--checkpoint-max-keep", type=int, default=10, help="The maximum number of checkpoints to keep before deleting old ones")
     parser.add_argument("-t", "--checkpoint-hours", type=int, default=6, help="Always keep 1 checkpoint every n hours")
     parser.add_argument("-f", "--load-file", type=str, help="filename of saved checkpoint")
-    parser.add_argument("-o", "--checkpoint-label", type=str, default="checkpoint__"+githashval+"__"+timestamp,help="Saved checkpoints will be named 'name'-'step'. defaults to checkpoint__hash__timestamp")
+    parser.add_argument("-o", "--name", type=str, default=timestamp+"__"+githashval,help="Saved checkpoints will be named 'name'-'step'. defaults to timestamp__hash")
 
     args = parser.parse_args()
 
@@ -52,6 +56,9 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
     else:
         print("Not saving checkpoints.")
 
+    checkpoint_prefix = CHECKPOINT_DIRECTORY + model.name() + '/' + args.name
+    tensorboard_prefix = TB_LOGS_DIR + model.name() + '/' + args.name + '/'
+
     (all_categories, category_to_index) = get_categories()
 
     x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS), name='input')
@@ -61,7 +68,7 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
     train_size = len(train_files)
     val_data, val_labels, val_files = get_files('val', all_categories, cats)
 
-    logits, variables = model(x)
+    logits, variables = model.model(x)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
     loss_summary = tf.scalar_summary('Loss', loss)
     optimizer_op = optimizer.minimize(loss)
@@ -97,8 +104,10 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
     with tf.Session(config=config) as sess:
         # Initialize summary writer for TensorBoard
         merged = tf.merge_all_summaries()
-        train_writer = tf.train.SummaryWriter(TB_LOGS_DIR + 'training/', graph=sess.graph)
-        val_writer = tf.train.SummaryWriter(TB_LOGS_DIR + 'validation/')
+        os.makedirs(tensorboard_prefix + '/training')
+        train_writer = tf.train.SummaryWriter(tensorboard_prefix + 'training/', graph=sess.graph)
+        os.makedirs(tensorboard_prefix + '/validation')
+        val_writer = tf.train.SummaryWriter(tensorboard_prefix + 'validation/')
 
         # Run all the initializers to prepare the trainable parameters.
         sess.run(tf.initialize_all_variables())
@@ -116,7 +125,7 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
             print("Restored state from file : " + args.load_file)
 
         # Loop through training steps.
-        for step in range(int(NUM_EPOCHS * train_size) // BATCH_SIZE):
+        for step in range(NUM_EPOCHS * train_size // BATCH_SIZE):
             _data, _labels = sess.run([batch_data, batch_labels])
 
             # This dictionary maps the batch data (as a numpy array) to the
@@ -163,8 +172,8 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
 
             if args.checkpoint_frequency and step % args.checkpoint_frequency == 0:
                 print("\tSaving state to %s......" % (
-                CHECKPOINT_DIRECTORY + args.checkpoint_label + "-" + str(step)))
-                saver.save(sess, CHECKPOINT_DIRECTORY + args.checkpoint_label, global_step = step)
+                checkpoint_prefix + "-" + str(step)))
+                saver.save(sess, checkpoint_prefix, global_step = step)
                 print("\tSuccess!\n")
 
         coord.request_stop()
@@ -179,10 +188,11 @@ if __name__ == '__main__':
     setting tf.Variable(0.002) give a list (!!)
     """
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+    cats = []
 
     ### Example when running BrianNet
-    # run([], 0.002, optimizer, {}, {}, briannet)
+    # run(cats, 0.002, optimizer, {}, {}, BrianNet())
 
     ### Example when running AlexNet
     keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout
-    run([], 0.002, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model = lambda v: alexnet(v, keep_prob))
+    run(cats, 0.002, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=AlexNet(keep_prob))
