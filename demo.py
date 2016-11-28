@@ -143,7 +143,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
                 # fetch some extra nodes' data
                 train_l, train_predictions, minibatch_top1, minibatch_top5, train_summary = sess.run(
                         [loss, prediction, accuracy_1, accuracy_5, merged],
-                        feed_dict=train_feed_dict) # TODO: correct feed dict for summary?
+                        feed_dict=train_feed_dict)
 
                 # calculate validation set metrics
                 val_l, val_predictions, val_top1, val_top5, val_summary = sess.run(
