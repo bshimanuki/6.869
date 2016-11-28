@@ -10,7 +10,7 @@ import logger
 # all prints
 from constants import *
 from model import Model
-from util import accuracy, get_categories, get_files
+from util import accuracy, get_files
 
 from alexnet import AlexNet
 from briannet import BrianNet
@@ -59,14 +59,13 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
     checkpoint_prefix = CHECKPOINT_DIRECTORY + model.name() + '/' + args.name
     tensorboard_prefix = TB_LOGS_DIR + model.name() + '/' + args.name + '/'
 
-    (all_categories, category_to_index) = get_categories()
-
     x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS), name='input')
     y = tf.placeholder(tf.int32, shape=(BATCH_SIZE,), name='labels')
 
-    train_data, train_labels, train_files = get_files('train', all_categories, cats, n=IMAGES_PER_CAT)
+    print('Using %d categories.' % len(set(cats) & set(ALL_CATEGORIES)))
+    train_data, train_labels, train_files = get_files('train', cats, n=IMAGES_PER_CAT)
     train_size = len(train_files)
-    val_data, val_labels, val_files = get_files('val', all_categories, cats)
+    val_data, val_labels, val_files = get_files('val', cats)
 
     logits, variables = model.model(x)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
@@ -189,6 +188,7 @@ if __name__ == '__main__':
     """
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     cats = []
+    # cats = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
 
     ### Example when running BrianNet
     # run(cats, 0.002, optimizer, {}, {}, BrianNet())

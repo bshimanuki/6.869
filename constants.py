@@ -19,3 +19,16 @@ DATA_DIR = PWD + 'data/images/'
 CHECKPOINT_DIRECTORY = PWD + 'checkpoints/'
 LOGS_DIR = PWD + 'logs/'
 TB_LOGS_DIR = PWD + 'tb_logs/'
+
+def get_categories():
+    # Get list of categories, and mapping from category to index
+    with open('development_kit/data/categories.txt') as f:
+        categories = []
+        category_to_index = {}
+        for line in f:
+            name, cat = line.split()
+            cat = int(cat)
+            categories.append(name[3:]) # skip '/./'
+            category_to_index[name] = cat
+    return (categories, category_to_index)
+ALL_CATEGORIES, CATEGORIES_TO_INDEX = get_categories()
