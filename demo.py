@@ -62,7 +62,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_FINAL_SIZE, IMAGE_FINAL_SIZE, NUM_CHANNELS), name='input')
     y = tf.placeholder(tf.int32, shape=(BATCH_SIZE,), name='labels')
 
-    print('Using %d categories.' % len(set(target_categories) & set(ALL_CATEGORIES)))
+    print('Using %d categories.' % len(set(target_categories) & set(ALL_CATEGORIES)) if target_categories else len(ALL_CATEGORIES))
     train_data, train_labels = get_input('train', target_categories, n=IMAGES_PER_CAT)
     train_size = get_size('train', target_categories, n=IMAGES_PER_CAT)
     val_data, val_labels = get_input('val', target_categories)
@@ -188,6 +188,7 @@ if __name__ == '__main__':
     optimizer = tf.train.AdadeltaOptimizer()
     target_categories = ['abbey', 'airport_terminal']
     # target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
+    # target_categories = ALL_CATEGORIES[:10]
 
     ### Example when running BrianNet
     run(target_categories, optimizer, {}, {}, model=BrianNet())
