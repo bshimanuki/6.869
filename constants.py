@@ -2,24 +2,54 @@ import os
 import tensorflow as tf
 import numpy as np
 
-IMAGES_PER_CAT = None # TODO: return to None
-BATCH_SIZE = 200 # TODO: return to 200
-IMAGE_IMPORT_SIZE = 128
-IMAGE_RESIZE_SIZE = 256
-IMAGE_FINE_SIZE = 224
-IMAGE_MEAN = np.array([0.45834960097,0.44674252445,0.41352266842])
-NUM_CHANNELS = 3
-NUM_LABELS = 100
+"""
+Parameters for each run.
+    :param IMAGES_PER_CAT: Number of images to use per category; defaults to all images if not specified.
+    :param BATCH_SIZE: Number of images to process in each gradient descent step.
+    :param NUM_EPOCHS: (Average) number of times to rpocess each image.
+    :param SEED: Random seed for run. (@brishima suspects that not all the randomness is controlled here.
+    :param KEEP_PROB: Proportion of nodes in fully-connected layers to drop out.
+    :param EVAL_FREQUENCY: Frequency with which we evaluate diagnostics (loss, accuracies ...). This information is
+        also saved to be accessible to Tensorboard.
+    :param USE_GPU: Whether to use GPU acceleration if available. Only set to False if you are receiving
+        out-of-memory errors with the GPU.
+    :param FLAG_RESIZE_AND_CROP: Whether to resize to a square image of IMAGE_RESIZED_SIZE and then randomly crop the
+        images.
+    :param FLAG_RANDOM_FLIP:
+"""
+IMAGES_PER_CAT = None
+BATCH_SIZE = 50
 NUM_EPOCHS = 100
 SEED = 1234
 KEEP_PROB = 0.5
 EVAL_FREQUENCY = 1
-USE_GPU = False
+USE_GPU = True
+
+# TODO: Maybe don't use these constants directly but pass in as parameters?
+FLAG_RESIZE_AND_CROP = False
+IMAGE_RESIZED_SIZE = 256
+IMAGE_CROPPED_SIZE = 224
+FLAG_RANDOM_FLIP_LR = False
+FLAG_NORMALIZE = True
+FLAG_DEMEAN = True
+IMAGE_MEAN = np.array([0.45834960097,0.44674252445,0.41352266842])*255
+
+"""
+Global constants. There should be no reason to modify these.
+"""
 TYPE = tf.float32
 LABEL_TYPE = tf.int32
+NUM_CHANNELS = 3
+IMAGE_IMPORT_SIZE = 128
+NUM_LABELS = 100
 
+"""
+Constants for logging and storing data. You are unlikely to want to modify these.
+"""
 PWD = os.path.dirname(__file__) + '/'
 DATA_DIR = PWD + 'data/images/'
 CHECKPOINT_DIRECTORY = PWD + 'checkpoints/'
 LOGS_DIR = PWD + 'logs/'
 TB_LOGS_DIR = PWD + 'tb_logs/'
+
+IMAGE_FINAL_SIZE = IMAGE_CROPPED_SIZE if FLAG_RESIZE_AND_CROP else IMAGE_IMPORT_SIZE

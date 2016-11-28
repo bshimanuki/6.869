@@ -3,7 +3,8 @@ from collections import Counter
 import numpy as np
 import tensorflow as tf
 
-from constants import DATA_DIR, NUM_CHANNELS, TYPE, IMAGE_RESIZE_SIZE, IMAGE_FINE_SIZE, IMAGE_MEAN, SEED
+from constants import DATA_DIR, NUM_CHANNELS, TYPE, IMAGE_RESIZED_SIZE, IMAGE_CROPPED_SIZE, IMAGE_MEAN, SEED, \
+    FLAG_RESIZE_AND_CROP, FLAG_DEMEAN, FLAG_NORMALIZE, FLAG_RANDOM_FLIP_LR, IMAGE_IMPORT_SIZE
 
 
 def get_categories():
@@ -18,8 +19,6 @@ def get_categories():
             category_to_index[name] = cat
     return (categories, category_to_index)
 
-
-# Potentially leanr from www.github.com/tensorflow/tensorflow/blob/r0.10/tensorflow/models/image/cifar10/cifar10_input.py#L222
 
 def get_input(partition, all_categories, target_categories=[], n=None):
     """
@@ -36,12 +35,17 @@ def get_input(partition, all_categories, target_categories=[], n=None):
     label = queue[1]
     image = tf.image.decode_jpeg(image, channels=NUM_CHANNELS)
     image = tf.cast(image, TYPE)
-    image = tf.image.resize_images(image, [IMAGE_RESIZE_SIZE, IMAGE_RESIZE_SIZE])
-    image = tf.image.random_ops.random_crop(image, [IMAGE_FINE_SIZE, IMAGE_FINE_SIZE, NUM_CHANNELS], seed=SEED)
-    image = tf.image.random_flip_left_right(image, seed=SEED)
-    image = image / 255 # Convert pixel values to 0-1
-    image = image - IMAGE_MEAN # TODO: someone sanity check me here please?
-    # image.set_shape((IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS))
+    if FLAG_RESIZE_AND_CROP:
+        image = tf.image.resize_images(image, [IMAGE_RESIZED_SIZE, IMAGE_RESIZED_SIZE])
+        image = tf.image.random_ops.random_crop(image, [IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, NUM_CHANNELS], seed=SEED)
+    else:
+        image.set_shape((IMAGE_IMPORT_SIZE, IMAGE_IMPORT_SIZE, NUM_CHANNELS))
+    if FLAG_RANDOM_FLIP_LR:
+        image = tf.image.random_flip_left_right(image, seed=SEED)
+    if FLAG_DEMEAN:
+        image = image - IMAGE_MEAN
+    if FLAG_NORMALIZE:
+        image = image/255.
     return image, label
 
 def get_files_and_labels(partition, all_categories, target_categories=[], n=None):
