@@ -10,7 +10,7 @@ import logger
 # all prints
 from constants import *
 from model import Model
-from util import accuracy, get_files
+from util import accuracy, get_input, get_size
 
 from alexnet import AlexNet
 from briannet import BrianNet
@@ -31,7 +31,7 @@ param_log_name = LOGS_DIR + "save__" + timestamp + "__" + githashval + ".log"
 import tensorflow as tf
 
 
-def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp, model):
+def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, model):
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--description", type=str, default="No description Provided", help="A helpful label for this run")
@@ -59,13 +59,13 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
     checkpoint_prefix = CHECKPOINT_DIRECTORY + model.name() + '/' + args.name
     tensorboard_prefix = TB_LOGS_DIR + model.name() + '/' + args.name + '/'
 
-    x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_SIZE, IMAGE_SIZE, NUM_CHANNELS), name='input')
+    x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_FINAL_SIZE, IMAGE_FINAL_SIZE, NUM_CHANNELS), name='input')
     y = tf.placeholder(tf.int32, shape=(BATCH_SIZE,), name='labels')
 
-    print('Using %d categories.' % len(set(cats) & set(ALL_CATEGORIES)))
-    train_data, train_labels, train_files = get_files('train', cats, n=IMAGES_PER_CAT)
-    train_size = len(train_files)
-    val_data, val_labels, val_files = get_files('val', cats)
+    print('Using %d categories.' % len(set(target_categories) & set(ALL_CATEGORIES)))
+    train_data, train_labels = get_input('train', target_categories, n=IMAGES_PER_CAT)
+    train_size = get_size('train', target_categories, n=IMAGES_PER_CAT)
+    val_data, val_labels = get_input('val', target_categories)
 
     logits, variables = model.model(x)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
@@ -114,6 +114,9 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         print('Initialized!')
 
+        # print(sess.run([tf.reduce_max(batch_data)]))
+        # print(sess.run([tf.reduce_min(batch_data)]))
+
         val_data_sample, val_labels_sample = sess.run([batch_val_data, batch_val_labels])
         val_feed_dict = {x: val_data_sample, y: val_labels_sample}
         val_feed_dict.update(val_feed_dict_supp)
@@ -139,7 +142,7 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
                 # fetch some extra nodes' data
                 train_l, train_predictions, minibatch_top1, minibatch_top5, train_summary = sess.run(
                         [loss, prediction, accuracy_1, accuracy_5, merged],
-                        feed_dict=train_feed_dict) # TODO: correct feed dict for summary?
+                        feed_dict=train_feed_dict)
 
                 # calculate validation set metrics
                 val_l, val_predictions, val_top1, val_top5, val_summary = sess.run(
@@ -160,7 +163,8 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
                       (step, float(step) * BATCH_SIZE / train_size,
                        1000 * elapsed_time / EVAL_FREQUENCY))
                 print('\tMinibatch loss: %.3f' % (train_l))
-                print('\tLearning rate: %.6f' % (learning_rate))
+                # print('\tLearning rate: %.6f' % (learning_rate))
+                # TODO: we don't actually have a reliable way of determining the learning rate right now
                 print('\tMinibatch top-1 accuracy: %.1f%%, Minibatch top-5 accuracy: %.1f%%' %
                       (minibatch_top1, minibatch_top5))
                 print('\tValidation loss: %.3f' % (val_l))
@@ -180,19 +184,14 @@ def run(cats, learning_rate, optimizer, val_feed_dict_supp, train_feed_dict_supp
 
 
 if __name__ == '__main__':
-    learning_rate = 0.002
-    """
-    TODO: I need to figure out how to print out the learning rate when it's not a constant
-    Currently the issue is that the variable learning rate (using tf.train.exponential_decay) gives a float, but
-    setting tf.Variable(0.002) give a list (!!)
-    """
-    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-    cats = []
-    # cats = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
+    # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+    optimizer = tf.train.AdadeltaOptimizer()
+    target_categories = ['abbey', 'airport_terminal']
+    # target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
 
     ### Example when running BrianNet
-    # run(cats, 0.002, optimizer, {}, {}, BrianNet())
+    run(target_categories, optimizer, {}, {}, model=BrianNet())
 
     ### Example when running AlexNet
-    keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout
-    run(cats, 0.002, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=AlexNet(keep_prob))
+    # keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout
+    # run(target_categories, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=AlexNet(keep_prob))
