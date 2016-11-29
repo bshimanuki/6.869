@@ -14,6 +14,7 @@ from util import accuracy, get_input, get_size
 
 from alexnet_small import AlexNetSmall
 from briannet import BrianNet
+from vggnet import VGGNet
 
 timestamp = time.strftime("%Y-%m-%d_%H:%M:%S")
 
@@ -186,9 +187,11 @@ if __name__ == '__main__':
     target_categories = []
     # target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
 
+    keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout
+
     ### Example when running BrianNet
     #run(target_categories, optimizer, {}, {}, model=BrianNet())
 
-    ### Example when running AlexNet
-    keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout
-    run(target_categories, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=AlexNetSmall(keep_prob))
+    model = AlexNetSmall(keep_prob)
+    # model = VGGNet(keep_prob)
+    run(target_categories, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=model)
