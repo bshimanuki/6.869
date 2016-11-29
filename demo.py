@@ -12,7 +12,7 @@ from constants import *
 from model import Model
 from util import accuracy, get_input, get_size
 
-from alexnet import AlexNet
+from alexnet_small import AlexNetSmall
 from briannet import BrianNet
 
 timestamp = time.strftime("%Y-%m-%d_%H:%M:%S")
@@ -186,12 +186,12 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 if __name__ == '__main__':
     # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     optimizer = tf.train.AdadeltaOptimizer()
-    target_categories = ['abbey', 'airport_terminal']
+    target_categories = []
     # target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
 
     ### Example when running BrianNet
-    run(target_categories, optimizer, {}, {}, model=BrianNet())
+    #run(target_categories, optimizer, {}, {}, model=BrianNet())
 
     ### Example when running AlexNet
-    # keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout
-    # run(target_categories, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=AlexNet(keep_prob))
+    keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout
+    run(target_categories, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=AlexNetSmall(keep_prob))
