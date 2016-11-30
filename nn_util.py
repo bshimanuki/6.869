@@ -34,6 +34,14 @@ def bias_variable(shape, name=None):
         return bias
 
 
+def num_parameters(variables):
+    n = 0
+    for variables_by_type in variables.values():
+        for variable in variables_by_type:
+            n += reduce(operator.mul, variable.get_shape().as_list())
+    return n
+
+
 def conv_layer(input_layer, depth, window, stride=1, activation_fn=tf.nn.relu, pool=None, lrn=None, name=None,
                variables=None):
     """Construct a convolutional layer which takes input_layer as input.

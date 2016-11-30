@@ -10,6 +10,7 @@ import logger
 # all prints
 from constants import *
 from model import Model
+from nn_util import num_parameters
 from util import accuracy, get_input, get_size
 
 from alexnet_small import AlexNetSmall
@@ -63,7 +64,8 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_FINAL_SIZE, IMAGE_FINAL_SIZE, NUM_CHANNELS), name='input')
     y = tf.placeholder(tf.int32, shape=(BATCH_SIZE,), name='labels')
 
-    print('Using %d categories.' % len(set(target_categories) & set(ALL_CATEGORIES)) if target_categories else len(ALL_CATEGORIES))
+    print('Using %d categories.' % (len(set(target_categories) & set(ALL_CATEGORIES)) if target_categories else len(ALL_CATEGORIES)))
+
     train_data, train_labels = get_input('train', target_categories, n=IMAGES_PER_CAT)
     train_size = get_size('train', target_categories, n=IMAGES_PER_CAT)
     val_data, val_labels = get_input('val', target_categories)
@@ -72,6 +74,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
     loss_summary = tf.scalar_summary('Loss', loss)
     optimizer_op = optimizer.minimize(loss)
+    print('Model %s has %d parameters.' % (model.name(), num_parameters(variables)))
 
     prediction = tf.nn.softmax(logits)
 
