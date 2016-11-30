@@ -90,11 +90,13 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
     batch_data, batch_labels = tf.train.batch(
             [train_data, train_labels],
-            batch_size=BATCH_SIZE)
+            batch_size=BATCH_SIZE,
+            capacity=5*BATCH_SIZE)
 
     batch_val_data, batch_val_labels = tf.train.batch(
             [val_data, val_labels],
-            batch_size=BATCH_SIZE)
+            batch_size=BATCH_SIZE,
+            capacity=5*BATCH_SIZE)
 
     start_time = time.time()
     if USE_GPU:
