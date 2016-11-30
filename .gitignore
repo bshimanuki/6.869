@@ -6,6 +6,7 @@
 /checkpoints
 __pycache__
 *.pyc
+*.pem
 
 .lvimrc
 *.pdf

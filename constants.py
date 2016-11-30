@@ -18,11 +18,12 @@ Parameters for each run.
     :param FLAG_RANDOM_FLIP:
 """
 IMAGES_PER_CAT = None
-BATCH_SIZE = 20
+BATCH_SIZE = 100
 NUM_EPOCHS = 100
 SEED = 1234
 KEEP_PROB = 0.5
-EVAL_FREQUENCY = 1
+EVAL_FREQUENCY = 10 # 10 will keep the epochs the same
+MIN_EVAL_STEP = EVAL_FREQUENCY # to skip unstable part at beginning
 USE_GPU = True
 
 # TODO: Maybe don't use these constants directly but pass in as parameters?

@@ -12,8 +12,9 @@ from constants import *
 from model import Model
 from util import accuracy, get_input, get_size
 
-from alexnet import AlexNet
+from alexnet_small import AlexNetSmall
 from briannet import BrianNet
+from vggnet import VGGNet
 
 timestamp = time.strftime("%Y-%m-%d_%H:%M:%S")
 
@@ -114,13 +115,6 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         print('Initialized!')
 
-        # print(sess.run([tf.reduce_max(batch_data)]))
-        # print(sess.run([tf.reduce_min(batch_data)]))
-
-        val_data_sample, val_labels_sample = sess.run([batch_val_data, batch_val_labels])
-        val_feed_dict = {x: val_data_sample, y: val_labels_sample}
-        val_feed_dict.update(val_feed_dict_supp)
-
         # unsure this is the right place to restore variable states
         if args.load_file:
             saver.restore(sess, args.load_file)
@@ -128,21 +122,26 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
         # Loop through training steps.
         for step in range(NUM_EPOCHS * train_size // BATCH_SIZE):
-            _data, _labels = sess.run([batch_data, batch_labels])
 
             # This dictionary maps the batch data (as a numpy array) to the
             # node in the graph it should be fed to.
+            _data, _labels = sess.run([batch_data, batch_labels])
             train_feed_dict = {x: _data, y: _labels}
             train_feed_dict.update(train_feed_dict_supp)
-            # Run the optimizer to update weights.
-            sess.run(optimizer_op, feed_dict=train_feed_dict)
+
+            # Run the optimizer to update weights can calculate loss
+            _, train_l, train_predictions, minibatch_top1, minibatch_top5, train_summary = sess.run(
+                    [optimizer_op, loss, prediction, accuracy_1, accuracy_5, merged],
+                    feed_dict=train_feed_dict)
+            if step >= MIN_EVAL_STEP:
+                train_writer.add_summary(train_summary, step)
 
             # print some extra information once reach the evaluation frequency
-            if step % EVAL_FREQUENCY == 0 and step > 0:
-                # fetch some extra nodes' data
-                train_l, train_predictions, minibatch_top1, minibatch_top5, train_summary = sess.run(
-                        [loss, prediction, accuracy_1, accuracy_5, merged],
-                        feed_dict=train_feed_dict)
+            if step % EVAL_FREQUENCY == 0 and step >= MIN_EVAL_STEP:
+                # get next validation batch
+                val_data_sample, val_labels_sample = sess.run([batch_val_data, batch_val_labels])
+                val_feed_dict = {x: val_data_sample, y: val_labels_sample}
+                val_feed_dict.update(val_feed_dict_supp)
 
                 # calculate validation set metrics
                 val_l, val_predictions, val_top1, val_top5, val_summary = sess.run(
@@ -150,9 +149,8 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
                         feed_dict=val_feed_dict)
 
                 # Add TensorBoard summary to summary writer
-                train_writer.add_summary(train_summary, step)
-                train_writer.flush()
                 val_writer.add_summary(val_summary, step)
+                train_writer.flush()
                 val_writer.flush()
 
                 # Print info/stats
@@ -186,13 +184,15 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 if __name__ == '__main__':
     # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     optimizer = tf.train.AdadeltaOptimizer()
-    target_categories = ['abbey', 'airport_terminal']
+    target_categories = []
     # target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
     # target_categories = ALL_CATEGORIES[:10]
 
-    ### Example when running BrianNet
-    run(target_categories, optimizer, {}, {}, model=BrianNet())
+    keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout
 
-    ### Example when running AlexNet
-    # keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout
-    # run(target_categories, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=AlexNet(keep_prob))
+    ### Example when running BrianNet
+    #run(target_categories, optimizer, {}, {}, model=BrianNet())
+
+    model = AlexNetSmall(keep_prob)
+    # model = VGGNet(keep_prob)
+    run(target_categories, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=model)

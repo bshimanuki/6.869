@@ -34,7 +34,7 @@ def bias_variable(shape, name=None):
         return bias
 
 
-def conv_layer(input_layer, depth, window, stride=1, activation_fn=tf.nn.sigmoid, pool=None, lrn=None, name=None,
+def conv_layer(input_layer, depth, window, stride=1, activation_fn=tf.nn.relu, pool=None, lrn=None, name=None,
                variables=None):
     """Construct a convolutional layer which takes input_layer as input.
 
@@ -57,7 +57,7 @@ def conv_layer(input_layer, depth, window, stride=1, activation_fn=tf.nn.sigmoid
         conv = tf.nn.conv2d(input_layer, w, strides=[1, stride, stride, 1], padding='SAME') + b
         # Note: Sample code seems to use tf.nn.bias_add instead of straight addition here.
         with tf.name_scope('output/' + name):
-            output = activation_fn(conv)
+            output = activation_fn(conv, name='activation')
             if lrn is not None:
                 (lrn_depth_radius, lrn_bias, lrn_alpha, lrn_beta) = lrn
                 output = tf.nn.local_response_normalization(
@@ -77,7 +77,7 @@ def conv_layer(input_layer, depth, window, stride=1, activation_fn=tf.nn.sigmoid
         return output
 
 
-def ff_layer(input_layer, depth, activation_fn=tf.nn.sigmoid, dropout=None, name=None, activation=True, variables=None):
+def ff_layer(input_layer, depth, activation_fn=tf.nn.relu, dropout=None, name=None, activation=True, variables=None):
     """Construct a fully connected layer which takes input_layer as input.
 
     input_layer -> output
@@ -99,7 +99,7 @@ def ff_layer(input_layer, depth, activation_fn=tf.nn.sigmoid, dropout=None, name
             hidden = tf.matmul(input_layer, w) + b
             if activation:
                 # TODO: potentially change this to just passign in an identity as the activation function
-                hidden = activation_fn(hidden)
+                hidden = activation_fn(hidden, name='activation')
             if dropout is not None:
                 keep_prob = dropout
                 hidden = tf.nn.dropout(hidden, keep_prob)
