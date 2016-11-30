@@ -48,17 +48,18 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     print("Starting Training......Git commit : %s\n Model: TODO\n"%githashval)
     print("Description:")
     print("\t"+args.description+"\n")
+    checkpoint_dir = CHECKPOINT_DIRECTORY + model.name() + '/'
     if args.checkpoint_frequency:
         print("Saving every %d steps, keeping a maximum of %d old checkpoints but keeping one checkpoint every %d hours." % (args.checkpoint_frequency, args.checkpoint_max_keep, args.checkpoint_hours))
-        if not os.path.exists(CHECKPOINT_DIRECTORY):
-            print("Directory for checkpoints doesn't exist! Creating directory '%s'" % CHECKPOINT_DIRECTORY)
-            os.makedirs(CHECKPOINT_DIRECTORY)
+        if not os.path.exists(checkpoint_dir):
+            print("Directory for checkpoints doesn't exist! Creating directory '%s'" % checkpoint_dir)
+            os.makedirs(checkpoint_dir)
         else:
             print("Checkpoints will be saved to '%s'" % CHECKPOINT_DIRECTORY)
     else:
         print("Not saving checkpoints.")
 
-    checkpoint_prefix = CHECKPOINT_DIRECTORY + model.name() + '/' + args.name
+    checkpoint_prefix = checkpoint_dir + args.name
     tensorboard_prefix = TB_LOGS_DIR + model.name() + '/' + args.name + '/'
 
     x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_FINAL_SIZE, IMAGE_FINAL_SIZE, NUM_CHANNELS), name='input')
@@ -107,9 +108,9 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     with tf.Session(config=config) as sess:
         # Initialize summary writer for TensorBoard
         merged = tf.merge_all_summaries()
-        os.makedirs(tensorboard_prefix + '/training')
+        os.makedirs(tensorboard_prefix + 'training/')
         train_writer = tf.train.SummaryWriter(tensorboard_prefix + 'training/', graph=sess.graph)
-        os.makedirs(tensorboard_prefix + '/validation')
+        os.makedirs(tensorboard_prefix + 'validation/')
         val_writer = tf.train.SummaryWriter(tensorboard_prefix + 'validation/')
 
         # Run all the initializers to prepare the trainable parameters.
