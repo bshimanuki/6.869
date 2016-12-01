@@ -37,9 +37,9 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--description", type=str, default="No description Provided", help="A helpful label for this run")
-    parser.add_argument("-s", "--checkpoint-frequency", type=int, default=200, help="Frequency of saving the state of training (in steps)")
-    parser.add_argument("-k", "--checkpoint-max-keep", type=int, default=10, help="The maximum number of checkpoints to keep before deleting old ones")
-    parser.add_argument("-t", "--checkpoint-hours", type=int, default=6, help="Always keep 1 checkpoint every n hours")
+    parser.add_argument("-s", "--checkpoint-frequency", type=int, default=2000, help="Frequency of saving the state of training (in steps)")
+    parser.add_argument("-k", "--checkpoint-max-keep", type=int, default=30, help="The maximum number of checkpoints to keep before deleting old ones")
+    parser.add_argument("-t", "--checkpoint-hours", type=int, default=2, help="Always keep 1 checkpoint every n hours")
     parser.add_argument("-f", "--load-file", type=str, help="filename of saved checkpoint")
     parser.add_argument("-o", "--name", type=str, default=timestamp+"__"+githashval,help="Saved checkpoints will be named 'name'-'step'. defaults to timestamp__hash")
 
