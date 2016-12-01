@@ -8,7 +8,6 @@ __pycache__
 *.pyc
 *.pem
 
-.lvimrc
 *.pdf
 
 *.aux
