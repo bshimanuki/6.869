@@ -55,7 +55,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
             print("Directory for checkpoints doesn't exist! Creating directory '%s'" % checkpoint_dir)
             os.makedirs(checkpoint_dir)
         else:
-            print("Checkpoints will be saved to '%s'" % CHECKPOINT_DIRECTORY)
+            print("Checkpoints will be saved to '%s'" % checkpoint_dir)
     else:
         print("Not saving checkpoints.")
 
@@ -88,6 +88,11 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
     metric_summaries = tf.merge_summary([loss_summary, accuracy_1_summary, accuracy_5_summary])
 
+    saver = tf.train.Saver(max_to_keep = args.checkpoint_max_keep, keep_checkpoint_every_n_hours = args.checkpoint_hours)
+    if args.checkpoint_frequency:
+        saver.export_meta_graph(checkpoint_prefix + '.meta')
+        print('Model graph saved.')
+
     batch_data, batch_labels = tf.train.batch(
             [train_data, train_labels],
             batch_size=BATCH_SIZE,
@@ -104,8 +109,6 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     else:
         config = tf.ConfigProto(device_count={'GPU': 0})
     # config.operation_timeout_in_ms = 2000
-
-    saver = tf.train.Saver(max_to_keep = args.checkpoint_max_keep, keep_checkpoint_every_n_hours = args.checkpoint_hours)
 
     with tf.Session(config=config) as sess:
         # Initialize summary writer for TensorBoard
@@ -127,7 +130,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
             print("Restored state from file : " + args.load_file)
 
         # Loop through training steps.
-        for step in range(NUM_EPOCHS * train_size // BATCH_SIZE):
+        for step in range(1, NUM_EPOCHS * train_size // BATCH_SIZE + 1):
 
             # This dictionary maps the batch data (as a numpy array) to the
             # node in the graph it should be fed to.
@@ -180,7 +183,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
             if args.checkpoint_frequency and step % args.checkpoint_frequency == 0:
                 print("\tSaving state to %s......" % (
                 checkpoint_prefix + "-" + str(step)))
-                saver.save(sess, checkpoint_prefix, global_step = step)
+                saver.save(sess, checkpoint_prefix, global_step = step, write_meta_graph=False)
                 print("\tSuccess!\n")
 
         coord.request_stop()
