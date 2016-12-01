@@ -191,8 +191,8 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
 
 if __name__ == '__main__':
-    # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-    optimizer = tf.train.AdadeltaOptimizer()
+    optimizer = tf.train.AdamOptimizer()
+    # optimizer = tf.train.AdadeltaOptimizer()
     target_categories = []
     target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
     # target_categories = ALL_CATEGORIES[:10]
@@ -202,6 +202,6 @@ if __name__ == '__main__':
     ### Example when running BrianNet
     #run(target_categories, optimizer, {}, {}, model=BrianNet())
 
-    model = AlexNetSmall(keep_prob)
-    # model = VGGNet(keep_prob)
+    # model = AlexNetSmall(keep_prob)
+    model = VGGNet(keep_prob)
     run(target_categories, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=model)
