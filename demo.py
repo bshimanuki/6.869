@@ -74,7 +74,6 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     logits, variables = model.model(x)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
     loss_summary = tf.scalar_summary('Loss', loss)
-    optimizer_op = optimizer.minimize(loss)
     print('Model %s has %d parameters.' % (model.name(), num_parameters(variables)))
 
     prediction = tf.nn.softmax(logits)
@@ -89,6 +88,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     metric_summaries = tf.merge_summary([loss_summary, accuracy_1_summary, accuracy_5_summary])
 
     saver = tf.train.Saver(max_to_keep = args.checkpoint_max_keep, keep_checkpoint_every_n_hours = args.checkpoint_hours)
+    optimizer_op = optimizer.minimize(loss)
     if args.checkpoint_frequency:
         saver.export_meta_graph(checkpoint_prefix + '.meta')
         print('Model graph saved.')
@@ -192,7 +192,8 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
 if __name__ == '__main__':
     # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-    optimizer = tf.train.AdadeltaOptimizer()
+    # optimizer = tf.train.AdadeltaOptimizer()
+    optimizer = tf.train.AdagradOptimizer(learning_rate=0.0001)
     target_categories = []
     # target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
     # target_categories = ALL_CATEGORIES[:10]
@@ -202,6 +203,6 @@ if __name__ == '__main__':
     ### Example when running BrianNet
     #run(target_categories, optimizer, {}, {}, model=BrianNet())
 
-    model = AlexNetSmall(keep_prob)
-    # model = VGGNet(keep_prob)
+    # model = AlexNetSmall(keep_prob)
+    model = VGGNet(keep_prob)
     run(target_categories, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=model)
