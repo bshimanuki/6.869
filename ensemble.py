@@ -89,17 +89,28 @@ if __name__ == '__main__':
     # config.operation_timeout_in_ms = 2000
 
     with tf.Session(config=config) as sess:
+        merged = tf.merge_all_summaries()
+        os.makedirs(tensorboard_prefix + 'training/')
+        train_writer = tf.train.SummaryWriter(tensorboard_prefix + 'training/', graph=sess.graph)
+        os.makedirs(tensorboard_prefix + 'validation/')
+        val_writer = tf.train.SummaryWriter(tensorboard_prefix + 'validation/')
+
+        # Run all the initializers to prepare the trainable parameters.
+        sess.run(tf.initialize_all_variables())
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
         print('restoring session')
         saver.restore(sess, 'checkpoints/alexnet')
         print('restored')
         _data, _labels = sess.run([batch_data, batch_labels])
         train_feed_dict = {x: _data, y: _labels}
         train_feed_dict.update(train_feed_dict_supp)
-
+        print('test1')
         _, train_l, train_predictions, minibatch_top1, minibatch_top5, train_summary = sess.run(
                 [optimizer_op, loss, prediction, accuracy_1, accuracy_5, merged],
                 feed_dict=train_feed_dict)
-
+        print('test2')
         val_data_sample, val_labels_sample = sess.run([batch_val_data, batch_val_labels])
         val_feed_dict = {x: val_data_sample, y: val_labels_sample}
         val_feed_dict.update(val_feed_dict_supp)
