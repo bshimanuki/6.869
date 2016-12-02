@@ -59,6 +59,7 @@ if __name__ == '__main__':
     optimizer_op = optimizer.minimize(loss)
 
     prediction = tf.nn.softmax(logits)
+    tensorboard_prefix = TB_LOGS_DIR + model.name() + '/' + args.name + '/'
 
     with tf.name_scope('top1'):
         accuracy_1 = 100 * accuracy(logits, y)
