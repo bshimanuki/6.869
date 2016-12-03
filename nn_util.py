@@ -130,5 +130,5 @@ def conv_to_ff_layer(input_layer):
     """
     with tf.name_scope('conv_to_ff_layer'):
         shape = input_layer.get_shape().as_list()
-        output = tf.reshape(input_layer, [shape[0], reduce(operator.mul, shape[1:], 1)])
+        output = tf.reshape(input_layer, [-1, reduce(operator.mul, shape[1:], 1)])
         return output

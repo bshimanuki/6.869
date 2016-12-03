@@ -14,6 +14,7 @@ def get_input(partition, target_categories=[], n=None, shuffle=True):
     """
     files, labels = get_files_and_labels(partition, target_categories, n)
     queue = tf.train.slice_input_producer([files, labels], shuffle=shuffle)
+    _file = queue[0]
     image = tf.read_file(queue[0])
     label = queue[1]
     image = tf.image.decode_jpeg(image, channels=NUM_CHANNELS)
@@ -29,7 +30,7 @@ def get_input(partition, target_categories=[], n=None, shuffle=True):
         image = image - IMAGE_MEAN
     if FLAG_NORMALIZE:
         image = image/255.
-    return image, label
+    return image, label, _file
 
 def get_files_and_labels(partition, target_categories=[], n=None):
     target_categories = set(target_categories)
@@ -38,11 +39,11 @@ def get_files_and_labels(partition, target_categories=[], n=None):
 
     # Retrieve test data
     if partition == 'test':
-        files = glob.glob(IMG_DIR + ('%s/*.jpg' % partition))
+        files = glob.glob(DATA_DIR + ('%s/*.jpg' % partition))
         return files, labels
 
     # Retrieve training, validation data and labels
-    with open(DATA_DIR + partition + 'txt') as f:
+    with open('development_kit/data/%s.txt' % partition) as f:
         for line in f:
             name, cat = line.split()
             num = int(''.join(filter(str.isdigit, name)))
@@ -80,7 +81,7 @@ def accuracy(predictions, labels, k=1):
     return tf.reduce_mean(tf.cast(correct, tf.float32))
 
 def make_submission_file(prediction_file):
-    data_files = glob.glob(IMG_DIR + 'test/*.jpg')
+    data_files = glob.glob(DATA_DIR + 'test/*.jpg')
     data_files.sort()
 
     prefix_list = prediction_file.split('__')[-2:]

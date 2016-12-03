@@ -62,14 +62,14 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     checkpoint_prefix = checkpoint_dir + args.name
     tensorboard_prefix = TB_LOGS_DIR + model.name() + '/' + args.name + '/'
 
-    x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_FINAL_SIZE, IMAGE_FINAL_SIZE, NUM_CHANNELS), name='input')
-    y = tf.placeholder(tf.int32, shape=(BATCH_SIZE,), name='labels')
+    x = tf.placeholder(TYPE, shape=(None, IMAGE_FINAL_SIZE, IMAGE_FINAL_SIZE, NUM_CHANNELS), name='input')
+    y = tf.placeholder(tf.int32, shape=(None,), name='labels')
 
     print('Using %d categories.' % (len(set(target_categories) & set(ALL_CATEGORIES)) if target_categories else len(ALL_CATEGORIES)))
 
-    train_data, train_labels = get_input('train', target_categories, n=IMAGES_PER_CAT)
+    train_data, train_labels, _ = get_input('train', target_categories, n=IMAGES_PER_CAT)
     train_size = get_size('train', target_categories, n=IMAGES_PER_CAT)
-    val_data, val_labels = get_input('val', target_categories)
+    val_data, val_labels, _ = get_input('val', target_categories)
 
     logits, variables = model.model(x)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))

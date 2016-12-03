@@ -12,7 +12,7 @@ from util import *
 def run_test(checkpoint_file, model_name):
 
     # Get test data
-    test_data, test_labels = get_input('test', shuffle=False)
+    test_data, test_labels, _ = get_input('test', shuffle=False)
     print("Retrieved test data successfully")
     test_size = get_size('test')
 
