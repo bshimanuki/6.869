@@ -17,8 +17,8 @@ Parameters for each run.
         images.
     :param FLAG_RANDOM_FLIP:
 """
-IMAGES_PER_CAT = None
-BATCH_SIZE = 2
+IMAGES_PER_CAT = 100
+BATCH_SIZE = 100
 NUM_EPOCHS = 100
 SEED = 1234
 KEEP_PROB = 0.5
@@ -48,10 +48,13 @@ NUM_LABELS = 100
 Constants for logging and storing data. You are unlikely to want to modify these.
 """
 PWD = os.path.dirname(__file__) + '/'
-DATA_DIR = PWD + 'data/images/'
+IMG_DIR = PWD + 'data/images/'
+DATA_DIR = PWD + 'development_kit/data/'
 CHECKPOINT_DIRECTORY = PWD + 'checkpoints/'
 LOGS_DIR = PWD + 'logs/'
 TB_LOGS_DIR = PWD + 'tb_logs/'
+PREDICTIONS_DIR = PWD + 'predictions/'
+SUBMISSIONS_DIR = PWD + 'submissions/'
 
 def get_categories():
     # Get list of categories, and mapping from category to index

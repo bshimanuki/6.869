@@ -1,14 +1,12 @@
 import tensorflow as tf
 import glob
+import pickle
 
-from constants import ALL_CATEGORIES, DATA_DIR, NUM_CHANNELS, TYPE, IMAGE_RESIZED_SIZE, IMAGE_CROPPED_SIZE, IMAGE_MEAN, SEED, \
-    FLAG_RESIZE_AND_CROP, FLAG_DEMEAN, FLAG_NORMALIZE, FLAG_RANDOM_FLIP_LR, IMAGE_IMPORT_SIZE, CHECKPOINT_DIRECTORY, \
-    BATCH_SIZE, IMAGE_FINAL_SIZE
+from constants import *
 
 
-def get_input(partition, target_categories=[], n=None, shuffle=False):
+def get_input(partition, target_categories=[], n=None, shuffle=True):
     """
-
     :param partition: String matching folder containing images. Valid values are 'test', 'train' and 'val'
     :param target_categories: Target categories. Defaults to all categories if not specified.
     :param n: Target number of examples. Defaults to infinity if not specified.
@@ -40,11 +38,11 @@ def get_files_and_labels(partition, target_categories=[], n=None):
 
     # Retrieve test data
     if partition == 'test':
-        files = glob.glob(DATA_DIR + ('%s/*.jpg' % partition))
+        files = glob.glob(IMG_DIR + ('%s/*.jpg' % partition))
         return files, labels
 
     # Retrieve training, validation data and labels
-    with open('development_kit/data/%s.txt' % partition) as f:
+    with open(DATA_DIR + partition + 'txt') as f:
         for line in f:
             name, cat = line.split()
             num = int(''.join(filter(str.isdigit, name)))
@@ -81,3 +79,31 @@ def accuracy(predictions, labels, k=1):
     # print('\t', Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
     return tf.reduce_mean(tf.cast(correct, tf.float32))
 
+def make_submission_file(prediction_file):
+    data_files = glob.glob(IMG_DIR + 'test/*.jpg')
+    data_files.sort()
+
+    prefix_list = prediction_file.split('__')[-2:]
+    prefix = '__'.join(prefix_list)
+    output_file = SUBMISSIONS_DIR + 'submission__' + prefix + '.txt'
+
+    config = tf.ConfigProto(device_count={'GPU': 0})
+    with tf.Session(config=config) as sess:
+        with open(prediction_file, 'rb') as pred_f:
+            print("Opened prediction file %s" % prediction_file)
+            predictions = pickle.load(pred_f)
+
+            with open(output_file, 'w') as out_f:
+                print("Created submission file %s" % output_file)
+                for i in range(len(predictions)):
+                    short_data_file = '/'.join(data_files[i].split('/')[-2:])
+                    output_line = [short_data_file]
+
+                    prediction = predictions[i]
+                    values, indices = tf.nn.top_k(prediction, k=5, sorted=True)
+                    labels = map(str, indices.eval().tolist())
+
+                    output_line.extend(labels)
+                    out_f.write(' '.join(output_line) + '\n')
+            out_f.close()
+        pred_f.close()
