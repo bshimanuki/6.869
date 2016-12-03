@@ -82,6 +82,7 @@ def conv_layer(input_layer, depth, window, stride=1, activation_fn=tf.nn.relu, p
             variables['conv_w'].append(w)
             variables['conv_b'].append(b)
         tf.histogram_summary('%s/activation' % (name if name is not None else ''), output)
+        tf.add_to_collection(name, output)
         return output
 
 
@@ -115,6 +116,7 @@ def ff_layer(input_layer, depth, activation_fn=tf.nn.relu, dropout=None, name=No
             variables['ff_w'].append(w)
             variables['ff_b'].append(b)
         tf.histogram_summary('%s/hidden' % (name if name is not None else ''), hidden)
+        tf.add_to_collection(name, hidden)
         return hidden
 
 

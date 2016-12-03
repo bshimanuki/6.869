@@ -41,9 +41,10 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     parser.add_argument("-k", "--checkpoint-max-keep", type=int, default=30, help="The maximum number of checkpoints to keep before deleting old ones")
     parser.add_argument("-t", "--checkpoint-hours", type=int, default=2, help="Always keep 1 checkpoint every n hours")
     parser.add_argument("-f", "--load-file", type=str, help="filename of saved checkpoint")
-    parser.add_argument("-o", "--name", type=str, default=timestamp+"__"+githashval,help="Saved checkpoints will be named 'name'-'step'. defaults to timestamp__hash")
+    parser.add_argument("-o", "--name", type=str, default=githashval,help="Saved checkpoints will be named 'name'__'timestamp'-'step'. defaults to the git hash")
 
     args = parser.parse_args()
+    args.name += '__' + timestamp
 
     print("Starting Training......Git commit : %s\n Model: TODO\n"%githashval)
     print("Description:")
@@ -75,6 +76,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
     loss_summary = tf.scalar_summary('Loss', loss)
     optimizer_op = optimizer.minimize(loss)
+    tf.add_to_collection('logits', logits)
     print('Model %s has %d parameters.' % (model.name(), num_parameters(variables)))
 
     prediction = tf.nn.softmax(logits)
