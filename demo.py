@@ -189,6 +189,21 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
         coord.request_stop()
         coord.join(threads)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def run_test(target_categories, checkpoint_path):
     # save whole thing
     # save top 5 in order
@@ -197,6 +212,7 @@ def run_test(target_categories, checkpoint_path):
 
     # Get test data
     test_data, test_labels = get_input('test', target_categories, n=IMAGES_PER_CAT)
+
     print("Got test data successfully")
     test_size = get_size('test', target_categories, n=IMAGES_PER_CAT)
 
@@ -205,10 +221,11 @@ def run_test(target_categories, checkpoint_path):
     logits, variables = model.model(x)
     prediction = tf.nn.softmax(logits)
 
+
     batch_data = tf.train.batch(
-            [test_data],
-            batch_size=BATCH_SIZE,
-            capacity=5*BATCH_SIZE)
+        [test_data],
+        batch_size=BATCH_SIZE,
+        capacity=5*BATCH_SIZE)
 
     start_time = time.time()
     if USE_GPU:
@@ -216,9 +233,10 @@ def run_test(target_categories, checkpoint_path):
     else:
         config = tf.ConfigProto(device_count={'GPU': 0})
 
+    saver = tf.train.Saver()
+
     with tf.Session(config=config) as sess:
         # Restore variables
-        saver = tf.train.Saver()
         saver.restore(sess=sess, save_path=checkpoint_path)
         print("Restored variables from checkpoint %s" % checkpoint_path)
 
@@ -226,17 +244,19 @@ def run_test(target_categories, checkpoint_path):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
+        n=0
         for step in range(test_size // BATCH_SIZE):
 
             # Feed dictionary
-            _data = sess.run([batch_data])
+            _data = sess.run(batch_data)
             test_feed_dict = {x: _data}
-            test_predictions = sess.run(prediction, feed_dict=feed_dict)
-
+            test_predictions = sess.run(prediction, feed_dict=test_feed_dict)
+            print(_data)
     coord.request_stop()
     coord.join(threads)
 
 if __name__ == '__main__':
+    learning_rate = 1.0
     # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     optimizer = tf.train.AdadeltaOptimizer()
     # target_categories = []
@@ -253,5 +273,5 @@ if __name__ == '__main__':
     # run(target_categories, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=model)
 
     # restore
-    checkpoint_path = CHECKPOINT_DIRECTORY + 'checkpoint__135b22cff320da6188ef72cb6e7f1ee743fa2e15__2016-11-26_20:06:01-200'
+    checkpoint_path = CHECKPOINT_DIRECTORY + 'alexnet'
     run_test(target_categories, checkpoint_path)
