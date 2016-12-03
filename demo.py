@@ -32,8 +32,7 @@ param_log_name = LOGS_DIR + "save__" + timestamp + "__" + githashval + ".log"
 
 import tensorflow as tf
 
-
-def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, model):
+def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, model, restore=False):
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--description", type=str, default="No description Provided", help="A helpful label for this run")
@@ -61,6 +60,8 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
     checkpoint_prefix = checkpoint_dir + args.name
     tensorboard_prefix = TB_LOGS_DIR + model.name() + '/' + args.name + '/'
+
+    # z = tf.Variable([1,2,3], name='z')
 
     x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_FINAL_SIZE, IMAGE_FINAL_SIZE, NUM_CHANNELS), name='input')
     y = tf.placeholder(tf.int32, shape=(BATCH_SIZE,), name='labels')
@@ -178,20 +179,68 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
 
             if args.checkpoint_frequency and step % args.checkpoint_frequency == 0:
+                # print("\tSaving state to %s......" % (
+                # checkpoint_prefix + "-" + str(step)))
                 print("\tSaving state to %s......" % (
-                checkpoint_prefix + "-" + str(step)))
+                checkpoint_prefix))
                 saver.save(sess, checkpoint_prefix, global_step = step)
                 print("\tSuccess!\n")
 
         coord.request_stop()
         coord.join(threads)
 
+def run_test(target_categories, checkpoint_path):
+    # save whole thing
+    # save top 5 in order
+
+    x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_FINAL_SIZE, IMAGE_FINAL_SIZE, NUM_CHANNELS), name='input')
+
+    # Get test data
+    test_data, test_labels = get_input('test', target_categories, n=IMAGES_PER_CAT)
+    print("Got test data successfully")
+    test_size = get_size('test', target_categories, n=IMAGES_PER_CAT)
+
+    keep_prob = 1.
+    model = AlexNetSmall(keep_prob)
+    logits, variables = model.model(x)
+    prediction = tf.nn.softmax(logits)
+
+    batch_data = tf.train.batch(
+            [test_data],
+            batch_size=BATCH_SIZE,
+            capacity=5*BATCH_SIZE)
+
+    start_time = time.time()
+    if USE_GPU:
+        config = tf.ConfigProto()
+    else:
+        config = tf.ConfigProto(device_count={'GPU': 0})
+
+    with tf.Session(config=config) as sess:
+        # Restore variables
+        saver = tf.train.Saver()
+        saver.restore(sess=sess, save_path=checkpoint_path)
+        print("Restored variables from checkpoint %s" % checkpoint_path)
+
+        sess.run(tf.initialize_all_variables())
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+        for step in range(test_size // BATCH_SIZE):
+
+            # Feed dictionary
+            _data = sess.run([batch_data])
+            test_feed_dict = {x: _data}
+            test_predictions = sess.run(prediction, feed_dict=feed_dict)
+
+    coord.request_stop()
+    coord.join(threads)
 
 if __name__ == '__main__':
     # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     optimizer = tf.train.AdadeltaOptimizer()
-    target_categories = []
-    # target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
+    # target_categories = []
+    target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
     # target_categories = ALL_CATEGORIES[:10]
 
     keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout
@@ -201,4 +250,8 @@ if __name__ == '__main__':
 
     model = AlexNetSmall(keep_prob)
     # model = VGGNet(keep_prob)
-    run(target_categories, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=model)
+    # run(target_categories, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=model)
+
+    # restore
+    checkpoint_path = CHECKPOINT_DIRECTORY + 'checkpoint__135b22cff320da6188ef72cb6e7f1ee743fa2e15__2016-11-26_20:06:01-200'
+    run_test(target_categories, checkpoint_path)
