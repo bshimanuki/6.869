@@ -32,8 +32,7 @@ param_log_name = LOGS_DIR + "save__" + timestamp + "__" + githashval + ".log"
 
 import tensorflow as tf
 
-
-def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, model):
+def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, model, restore=False):
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--description", type=str, default="No description Provided", help="A helpful label for this run")
@@ -183,16 +182,15 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
 
             if args.checkpoint_frequency and step % args.checkpoint_frequency == 0:
-                print("\tSaving state to %s......" % (
-                checkpoint_prefix + "-" + str(step)))
+                print("\tSaving state to %s......" % (checkpoint_prefix + "-" + str(step)))
                 saver.save(sess, checkpoint_prefix, global_step = step, write_meta_graph=False)
                 print("\tSuccess!\n")
 
         coord.request_stop()
         coord.join(threads)
 
-
 if __name__ == '__main__':
+    learning_rate = 1.0
     # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     optimizer = tf.train.AdadeltaOptimizer()
     target_categories = []
