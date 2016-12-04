@@ -32,7 +32,7 @@ def get_input(partition, target_categories=[], n=None, shuffle=True):
         image = image - IMAGE_MEAN
     if FLAG_NORMALIZE:
         image = image/255.
-    if FLAG_ADD_NOISE:
+    if FLAG_ADD_NOISE and partition == 'train':
         image = tf.image.random_hue(image, 0.02)
         image = tf.image.random_saturation(image, 0.9, 1.1)
         image = tf.image.random_contrast(image, 0.8, 1.2)
