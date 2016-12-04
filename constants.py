@@ -52,6 +52,8 @@ DATA_DIR = PWD + 'data/images/'
 CHECKPOINT_DIRECTORY = PWD + 'checkpoints/'
 LOGS_DIR = PWD + 'logs/'
 TB_LOGS_DIR = PWD + 'tb_logs/'
+PREDICTIONS_DIR = PWD + 'predictions/'
+SUBMISSIONS_DIR = PWD + 'submissions/'
 
 def get_categories():
     # Get list of categories, and mapping from category to index

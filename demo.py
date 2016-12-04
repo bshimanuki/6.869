@@ -32,8 +32,7 @@ param_log_name = LOGS_DIR + "save__" + timestamp + "__" + githashval + ".log"
 
 import tensorflow as tf
 
-
-def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, model):
+def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, model, restore=False):
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--description", type=str, default="No description Provided", help="A helpful label for this run")
@@ -41,9 +40,10 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     parser.add_argument("-k", "--checkpoint-max-keep", type=int, default=30, help="The maximum number of checkpoints to keep before deleting old ones")
     parser.add_argument("-t", "--checkpoint-hours", type=int, default=2, help="Always keep 1 checkpoint every n hours")
     parser.add_argument("-f", "--load-file", type=str, help="filename of saved checkpoint")
-    parser.add_argument("-o", "--name", type=str, default=timestamp+"__"+githashval,help="Saved checkpoints will be named 'name'-'step'. defaults to timestamp__hash")
+    parser.add_argument("-o", "--name", type=str, default=githashval,help="Saved checkpoints will be named 'name'__'timestamp'-'step'. defaults to the git hash")
 
     args = parser.parse_args()
+    args.name += '__' + timestamp
 
     print("Starting Training......Git commit : %s\n Model: TODO\n"%githashval)
     print("Description:")
@@ -62,22 +62,24 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     checkpoint_prefix = checkpoint_dir + args.name
     tensorboard_prefix = TB_LOGS_DIR + model.name() + '/' + args.name + '/'
 
-    x = tf.placeholder(TYPE, shape=(BATCH_SIZE, IMAGE_FINAL_SIZE, IMAGE_FINAL_SIZE, NUM_CHANNELS), name='input')
-    y = tf.placeholder(tf.int32, shape=(BATCH_SIZE,), name='labels')
+    x = tf.placeholder(TYPE, shape=(None, IMAGE_FINAL_SIZE, IMAGE_FINAL_SIZE, NUM_CHANNELS), name='input')
+    y = tf.placeholder(tf.int32, shape=(None,), name='labels')
 
     print('Using %d categories.' % (len(set(target_categories) & set(ALL_CATEGORIES)) if target_categories else len(ALL_CATEGORIES)))
 
-    train_data, train_labels = get_input('train', target_categories, n=IMAGES_PER_CAT)
+    train_data, train_labels, _ = get_input('train', target_categories, n=IMAGES_PER_CAT)
     train_size = get_size('train', target_categories, n=IMAGES_PER_CAT)
-    val_data, val_labels = get_input('val', target_categories)
+    val_data, val_labels, _ = get_input('val', target_categories)
 
     logits, variables = model.model(x)
+    prediction = tf.nn.softmax(logits)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
     loss_summary = tf.scalar_summary('Loss', loss)
     optimizer_op = optimizer.minimize(loss)
     print('Model %s has %d parameters.' % (model.name(), num_parameters(variables)))
 
-    prediction = tf.nn.softmax(logits)
+    tf.add_to_collection('logits', logits)
+    tf.add_to_collection('prediction', prediction)
 
     with tf.name_scope('top1'):
         accuracy_1 = 100 * accuracy(logits, y)
@@ -181,16 +183,15 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
 
             if args.checkpoint_frequency and step % args.checkpoint_frequency == 0:
-                print("\tSaving state to %s......" % (
-                checkpoint_prefix + "-" + str(step)))
+                print("\tSaving state to %s......" % (checkpoint_prefix + "-" + str(step)))
                 saver.save(sess, checkpoint_prefix, global_step = step, write_meta_graph=False)
                 print("\tSuccess!\n")
 
         coord.request_stop()
         coord.join(threads)
 
-
 if __name__ == '__main__':
+    learning_rate = 1.0
     # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     optimizer = tf.train.AdagradOptimizer(0.01)
     target_categories = []
