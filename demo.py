@@ -195,7 +195,7 @@ if __name__ == '__main__':
     # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     optimizer = tf.train.AdagradOptimizer(0.01)
     target_categories = []
-    target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
+    # target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
     # target_categories = ALL_CATEGORIES[:10]
 
     keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout
