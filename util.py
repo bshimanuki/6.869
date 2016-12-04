@@ -15,7 +15,7 @@ def get_input(partition, target_categories=[], n=None, shuffle=True):
     files, labels = get_files_and_labels(partition, target_categories, n)
     queue = tf.train.slice_input_producer([files, labels], shuffle=shuffle)
     _file = queue[0]
-    image = tf.read_file(queue[0])
+    image = tf.read_file(_file)
     label = queue[1]
     image = tf.image.decode_jpeg(image, channels=NUM_CHANNELS)
     image = tf.cast(image, TYPE)

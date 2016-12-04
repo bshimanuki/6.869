@@ -72,13 +72,14 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     val_data, val_labels, _ = get_input('val', target_categories)
 
     logits, variables = model.model(x)
+    prediction = tf.nn.softmax(logits)
     loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
     loss_summary = tf.scalar_summary('Loss', loss)
     optimizer_op = optimizer.minimize(loss)
-    tf.add_to_collection('logits', logits)
     print('Model %s has %d parameters.' % (model.name(), num_parameters(variables)))
 
-    prediction = tf.nn.softmax(logits)
+    tf.add_to_collection('logits', logits)
+    tf.add_to_collection('prediction', prediction)
 
     with tf.name_scope('top1'):
         accuracy_1 = 100 * accuracy(logits, y)
