@@ -1,6 +1,8 @@
-import tensorflow as tf
 import glob
 import pickle
+
+import numpy as np
+import tensorflow as tf
 
 from constants import *
 
@@ -30,6 +32,12 @@ def get_input(partition, target_categories=[], n=None, shuffle=True):
         image = image - IMAGE_MEAN
     if FLAG_NORMALIZE:
         image = image/255.
+    if FLAG_ADD_NOISE:
+        image = tf.image.random_hue(image, 0.02)
+        image = tf.image.random_saturation(image, 0.9, 1.1)
+        image = tf.image.random_contrast(image, 0.8, 1.2)
+        image = tf.image.random_brightness(image, 0.1)
+        image += np.random.normal(0, 0.02)
     return image, label, _file
 
 def get_files_and_labels(partition, target_categories=[], n=None):
