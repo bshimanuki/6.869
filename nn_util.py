@@ -1,3 +1,4 @@
+import math
 import operator
 from functools import reduce
 
@@ -132,3 +133,35 @@ def conv_to_ff_layer(input_layer):
         shape = input_layer.get_shape().as_list()
         output = tf.reshape(input_layer, [-1, reduce(operator.mul, shape[1:], 1)])
         return output
+
+
+def layer_to_image_summary(layer, name=None):
+    """Use for convolutional layers.
+    Show the activations of an input image.
+    """
+    with tf.name_scope('layer_summary'):
+        # get the first image
+        v = layer
+        batch_size, iy, ix, depth = v.get_shape().as_list()
+        v = tf.slice(layer, (0,0,0,0), (1,-1,-1,-1))
+        v = tf.reshape(v, (iy, ix, depth))
+        cy = math.ceil(math.sqrt(depth))
+        cx = cy
+        v = tf.pad(v, ((0,0), (0,0), (0,cy*cx-depth)))
+        v = tf.reshape(v, (iy, ix, cy, cx))
+        v = tf.transpose(v, (2,0,3,1)) # cy,iy,cx,ix
+        v = tf.reshape(v, (1, cy*iy, cx*ix, 1))
+        return tf.image_summary(name, v)
+
+def weight_to_image_summary(weight, name=None, max_images=1):
+    """Use for first convolutional layer."""
+    with tf.name_scope('weight_summary'):
+        v = weight
+        iy, ix, channels, depth = v.get_shape().as_list()
+        cy = math.ceil(math.sqrt(depth))
+        cx = cy
+        v = tf.pad(v, ((0,0), (0,0), (0,0), (0,cy*cx-depth)))
+        v = tf.reshape(v, (iy, ix, channels, cy, cx))
+        v = tf.transpose(v, (3,0,4,1,2)) # cy,iy,cx,ix,channels
+        v = tf.reshape(v, (1, cy*iy, cx*ix, channels))
+        return tf.image_summary(name, v, max_images=max_images)

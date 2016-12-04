@@ -10,7 +10,7 @@ import logger
 # all prints
 from constants import *
 from model import Model
-from nn_util import num_parameters
+from nn_util import num_parameters, layer_to_image_summary, weight_to_image_summary
 from util import accuracy, get_input, get_size
 
 from alexnet_small import AlexNetSmall
@@ -88,6 +88,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
         accuracy_5 = 100 * accuracy(logits, y, k=5)
         accuracy_5_summary = tf.scalar_summary('Top 5 Accuracy', accuracy_5)
 
+    merged = tf.merge_all_summaries()
     metric_summaries = tf.merge_summary([loss_summary, accuracy_1_summary, accuracy_5_summary])
 
     saver = tf.train.Saver(max_to_keep = args.checkpoint_max_keep, keep_checkpoint_every_n_hours = args.checkpoint_hours)
@@ -114,7 +115,6 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
     with tf.Session(config=config) as sess:
         # Initialize summary writer for TensorBoard
-        merged = tf.merge_all_summaries()
         os.makedirs(tensorboard_prefix + 'training/')
         train_writer = tf.train.SummaryWriter(tensorboard_prefix + 'training/', graph=sess.graph)
         os.makedirs(tensorboard_prefix + 'validation/')
@@ -181,6 +181,12 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
                       (val_top1, val_top5))
                 sys.stdout.flush()
 
+            if variables['conv_w'] and step % EVAL_IMAGE_FREQUENCY == 0:
+                summary = weight_to_image_summary(variables['conv_w'][0], name='weights/%d'%step)
+                _summary = sess.run(summary)
+                train_writer.add_summary(_summary)
+                train_writer.flush()
+                print('Added image summary.')
 
             if args.checkpoint_frequency and step % args.checkpoint_frequency == 0:
                 print("\tSaving state to %s......" % (checkpoint_prefix + "-" + str(step)))
