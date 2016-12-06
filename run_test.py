@@ -60,8 +60,7 @@ def run_test(checkpoint_file, model_name):
                 single_prediction.extend(test_predictions)
 
             average_prediction = np.average(np.array(single_prediction), axis=0)
-            print(np.shape(average_prediction))
-            predictions.extend(average_prediction.tolist())
+            predictions.append(average_prediction.tolist())
             print('Processing batch number: %d' % n)
             n+=1
 
