@@ -53,8 +53,7 @@ def run_test(checkpoint_file, model_name):
         n = 0
         for step in range(test_size // BATCH_SIZE//10):
             _data = sess.run(batch_data)
-            print(np.array(_data))
-            single_prediction = np.zeros(100)
+            single_prediction = []
             for i in range(8):
                 test_feed_dict = {x: _data[i]}
                 test_predictions = sess.run(prediction, feed_dict=test_feed_dict)
