@@ -53,7 +53,10 @@ def run_test(checkpoint_file, model_name):
         n = 0
         for step in range(test_size // BATCH_SIZE):
             _data = sess.run(batch_data)
-            assert(_data[0] == _data[2])
+            print(type(_data))
+            print(type(_data[0]))
+            print(type(_data[0][0]))
+            assert((_data[0] == _data[2]))
             single_prediction = []
             for i in range(8):
                 test_feed_dict = {x: _data[i]}
