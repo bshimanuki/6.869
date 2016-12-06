@@ -46,7 +46,6 @@ def run_test(checkpoint_file, model_name):
         saver.restore(sess=sess, save_path=checkpoint_file)
         print("Restored variables from checkpoint %s" % checkpoint_file)
 
-        sess.run(tf.initialize_all_variables())
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
