@@ -27,7 +27,7 @@ EVAL_IMAGE_FREQUENCY = 1000
 MIN_EVAL_STEP = EVAL_FREQUENCY # to skip unstable part at beginning
 USE_GPU = True
 CONV_REG = 1e-5
-FF_REG = 1e-3
+FF_REG = 1e-4
 
 # TODO: Maybe don't use these constants directly but pass in as parameters?
 FLAG_RESIZE_AND_CROP = True
