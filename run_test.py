@@ -42,9 +42,12 @@ def run_test(checkpoint_file, model_name):
 
     with tf.Session(config=config) as sess:
 
-        # Restore variables
+        # Restore variables - original way
         saver.restore(sess=sess, save_path=checkpoint_file)
         print("Restored variables from checkpoint %s" % checkpoint_file)
+
+        # Restore model - new way
+        # saver = tf.train.import_meta_graph('checkpoints/VGGNet/vgg_flip_crop__2016-12-04_07:51:46.meta')
 
         sess.run(tf.initialize_all_variables())
         coord = tf.train.Coordinator()
@@ -66,7 +69,7 @@ def run_test(checkpoint_file, model_name):
             prefix = filename[-2]
         else:
             prefix = filename[-1]
-        prediction_file = PREDICTIONS_DIR + 'prediction__' + prefix
+        prediction_file = PREDICTIONS_DIR + 'prediction___' + prefix
         with open(prediction_file, 'wb') as f:
             pickle.dump(predictions, f)
         print('Created new pickle file with predictions in %s' % prediction_file)
@@ -83,9 +86,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # run_test(args.file, args.model)
-    checkpoint_file = 'checkpoints/AlexNetSmall/2016-12-02_11:17:57__7cd73d7-0'
-    model_name = 'AlexNet'
-    prediction_file = run_test(checkpoint_file, model_name)
+    prediction_file = run_test(args.file, args.model)
 
     make_submission_file(prediction_file)

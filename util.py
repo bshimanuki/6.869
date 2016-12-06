@@ -48,6 +48,7 @@ def get_files_and_labels(partition, target_categories=[], n=None):
     # Retrieve test data
     if partition == 'test':
         files = glob.glob(DATA_DIR + ('%s/*.jpg' % partition))
+        files.sort()
         labels = [-1] * len(files)
         return files, labels
 
@@ -93,9 +94,8 @@ def make_submission_file(prediction_file):
     data_files = glob.glob(DATA_DIR + 'test/*.jpg')
     data_files.sort()
 
-    prefix_list = prediction_file.split('__')[-2:]
-    prefix = '__'.join(prefix_list)
-    output_file = SUBMISSIONS_DIR + 'submission__' + prefix + '.txt'
+    prefix_list = prediction_file.split('___')[-1]
+    output_file = SUBMISSIONS_DIR + 'submission___' + prefix + '.txt'
 
     config = tf.ConfigProto(device_count={'GPU': 0})
     with tf.Session(config=config) as sess:
@@ -106,6 +106,7 @@ def make_submission_file(prediction_file):
             with open(output_file, 'w') as out_f:
                 print("Created submission file %s" % output_file)
                 for i in range(len(predictions)):
+                    print("Reading prediction file %i" % i)
                     short_data_file = '/'.join(data_files[i].split('/')[-2:])
                     output_line = [short_data_file]
 
@@ -117,3 +118,4 @@ def make_submission_file(prediction_file):
                     out_f.write(' '.join(output_line) + '\n')
             out_f.close()
         pred_f.close()
+        print("Done writing to submission file!")
