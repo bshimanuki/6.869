@@ -69,7 +69,7 @@ def run_test(checkpoint_file, model_name):
             print(average_prediction)
             print('----')
             print(_data[0])
-            assert(average_prediction.tolist()[0] == _data[0])
+            assert(average_prediction.tolist()[0] == single_prediction[0])
             predictions.extend(average_prediction.tolist())
             print('Processing batch number: %d' % n)
             n+=1
