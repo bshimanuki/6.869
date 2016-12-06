@@ -137,6 +137,11 @@ def get_inputs_crop_flip(partition, target_categories=[], n=None):
     image = tf.image.decode_jpeg(image, channels=NUM_CHANNELS)
     image = tf.cast(image, TYPE)
 
+    if FLAG_DEMEAN:
+        image = image - IMAGE_MEAN
+    if FLAG_NORMALIZE:
+        image = image/255.
+
     # image1 = tf.image.crop_to_bounding_box(image, 0, 0, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
     image1 = tf.image.random_ops.random_crop(image, [IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, NUM_CHANNELS], seed=SEED)
 
@@ -152,4 +157,4 @@ def get_inputs_crop_flip(partition, target_categories=[], n=None):
 
     labels = [label]*8
 
-    return [image1, image1, image1, image1, image1, image1, image1, image1], labels, _file
+    return [image1, image2, image3, image4, image5, image6, image7, image8], labels, _file
