@@ -12,7 +12,7 @@ from util import *
 def run_test(checkpoint_file, model_name):
 
     # Get test data
-    test_data, test_labels, _ = get_input('test', shuffle=False)
+    test_data, test_labels, _ = get_inputs_crop_flip('test', shuffle=False)
     print("Retrieved test data successfully")
     test_size = get_size('test')
 
@@ -30,7 +30,7 @@ def run_test(checkpoint_file, model_name):
     prediction = tf.nn.softmax(logits)
 
     batch_data = tf.train.batch(
-        [test_data],
+        test_data,
         batch_size=BATCH_SIZE,
         capacity=5*BATCH_SIZE)
 
@@ -53,11 +53,12 @@ def run_test(checkpoint_file, model_name):
         n = 0
         for step in range(test_size // BATCH_SIZE):
             _data = sess.run(batch_data)
-            test_feed_dict = {x: _data}
-            test_predictions = sess.run(prediction, feed_dict=test_feed_dict)
-            predictions.extend(test_predictions)
-            print('Processing batch number: %d' % n)
-            n+=1
+            for i in range(8):
+                test_feed_dict = {x: _data[i]}
+                test_predictions = sess.run(prediction, feed_dict=test_feed_dict)
+                predictions.extend(test_predictions)
+                print('Processing batch number: %d' % n)
+                n+=1
 
         # Save predictions in pickle file
         filename = checkpoint_file.split('/')

@@ -120,3 +120,33 @@ def make_submission_file(prediction_file):
                 out_f.write(' '.join(output_line) + '\n')
         out_f.close()
     pred_f.close()
+
+def get_inputs_crop_flip(partition, target_categories=[], n=None, shuffle=True):
+    """
+    :param partition: String matching folder containing images. Valid values are 'test', 'train' and 'val'
+    :param target_categories: Target categories. Defaults to all categories if not specified.
+    :param n: Target number of examples. Defaults to infinity if not specified.
+    :return:
+    """
+    files, labels = get_files_and_labels(partition, target_categories, n)
+    queue = tf.train.slice_input_producer([files, labels], shuffle=shuffle)
+    _file = queue[0]
+    image = tf.read_file(_file)
+    label = queue[1]
+
+    image = tf.image.decode_jpeg(image, channels=NUM_CHANNELS)
+    image = tf.cast(image, TYPE)
+
+    image1 = tf.image.crop_to_bounding_box(image, 0, 0, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
+    image2 = tf.image.crop_to_bounding_box(image, 0, IMAGE_IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
+    image3 = tf.image.crop_to_bounding_box(image, IMAGE_IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, 0, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
+    image4 = tf.image.crop_to_bounding_box(image, IMAGE_IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, IMAGE_IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
+
+    image5 = tf.image.flip_left_right(image1)
+    image6 = tf.image.flip_left_right(image2)
+    image7 = tf.image.flip_left_right(image3)
+    image8 = tf.image.flip_left_right(image4)
+
+    labels = [label]*8
+
+    return [image1, image2, image3, image4, image5, image6, image7, image8], labels, _file
