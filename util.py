@@ -149,4 +149,4 @@ def get_inputs_crop_flip(partition, target_categories=[], n=None, shuffle=True):
 
     labels = [label]*8
 
-    return [image1, image2, image3, image4, image5, image6, image7, image8], labels, _file
+    return [image1, image1, image1, image1, image1, image1, image1, image1], labels, _file
