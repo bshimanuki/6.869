@@ -53,12 +53,20 @@ def run_test(checkpoint_file, model_name):
         n = 0
         for step in range(test_size // BATCH_SIZE):
             _data = sess.run(batch_data)
+            single_prediction = []
             for i in range(8):
                 test_feed_dict = {x: _data[i]}
                 test_predictions = sess.run(prediction, feed_dict=test_feed_dict)
-                predictions.extend(test_predictions)
-                print('Processing batch number: %d' % n)
-                n+=1
+                single_prediction.extend(test_predictions)
+
+
+            average_prediction = np.average(np.array(single_prediction), axis=0)
+
+            print(single_prediction[0]+single_prediction[1]+single_prediction[2]+single_prediction[3]+single_prediction[4]+single_prediction[5]+single_prediction[6]+single_prediction[7])
+            print(average_prediction[0]*8)
+            print('-------')
+            print('Processing batch number: %d' % n)
+            n+=1
 
         # Save predictions in pickle file
         filename = checkpoint_file.split('/')
