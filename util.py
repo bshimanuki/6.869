@@ -138,9 +138,9 @@ def get_inputs_crop_flip(partition, target_categories=[], n=None, shuffle=True):
     image = tf.cast(image, TYPE)
 
     image1 = tf.image.crop_to_bounding_box(image, 0, 0, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
-    image2 = tf.image.crop_to_bounding_box(image, 0, IMAGE_IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
-    image3 = tf.image.crop_to_bounding_box(image, IMAGE_IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, 0, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
-    image4 = tf.image.crop_to_bounding_box(image, IMAGE_IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, IMAGE_IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
+    image2 = tf.image.crop_to_bounding_box(image, 0, IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
+    image3 = tf.image.crop_to_bounding_box(image, IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, 0, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
+    image4 = tf.image.crop_to_bounding_box(image, IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
 
     image5 = tf.image.flip_left_right(image1)
     image6 = tf.image.flip_left_right(image2)
