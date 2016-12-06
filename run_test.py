@@ -53,7 +53,7 @@ def run_test(checkpoint_file, model_name):
         n = 0
         for step in range(test_size // BATCH_SIZE):
             _data = sess.run(batch_data)
-            test_feed_dict = {x: _data}
+            test_feed_dict = {x: _data, FLAG_TRAIN: False}
             test_predictions = sess.run(prediction, feed_dict=test_feed_dict)
             predictions.extend(test_predictions)
             print('Processing batch number: %d' % n)

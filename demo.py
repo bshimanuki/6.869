@@ -33,6 +33,8 @@ param_log_name = LOGS_DIR + "save__" + timestamp + "__" + githashval + ".log"
 import tensorflow as tf
 
 def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, model, restore=False):
+    train_feed_dict_supp[FLAG_TRAIN] = True
+    val_feed_dict_supp[FLAG_TRAIN] = False
     parser = argparse.ArgumentParser()
 
     parser.add_argument("-d", "--description", type=str, default="No description Provided", help="A helpful label for this run")

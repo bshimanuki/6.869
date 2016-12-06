@@ -31,11 +31,17 @@ def load_model(checkpoint_file, compute='logits'):
             keep_prob = g.get_tensor_by_name('keep_prob:0')
         except KeyError:
             keep_prob = None
+        try:
+            is_training = g.get_tensor_by_name('is_training:0')
+        except KeyError:
+            is_training = None
 
         def run(data):
             feed_dict = {x: data}
             if keep_prob is not None:
                 feed_dict[keep_prob] = 1.
+            if is_training is not None:
+                feed_dict[is_training] = False
             return sess.run(output, feed_dict=feed_dict)
     return run, tf.placeholder(output.dtype, output.get_shape().as_list())
 
