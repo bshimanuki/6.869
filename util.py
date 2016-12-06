@@ -98,24 +98,25 @@ def make_submission_file(prediction_file):
     prefix = '__'.join(prefix_list)
     output_file = SUBMISSIONS_DIR + 'submission__' + prefix + '.txt'
 
-    config = tf.ConfigProto(device_count={'GPU': 0})
-    with tf.Session(config=config) as sess:
-        with open(prediction_file, 'rb') as pred_f:
-            print("Opened prediction file %s" % prediction_file)
-            predictions = pickle.load(pred_f)
+    with open(prediction_file, 'rb') as pred_f:
+        print("Opened prediction file %s" % prediction_file)
+        predictions = pickle.load(pred_f)
 
-            with open(output_file, 'w') as out_f:
-                print("Created submission file %s" % output_file)
-                for i in range(len(predictions)):
-                    print('Filling in prediction number : ' + str(i) + '/' + str(len(predictions)))
-                    short_data_file = '/'.join(data_files[i].split('/')[-2:])
-                    output_line = [short_data_file]
+        with open(output_file, 'w') as out_f:
+            print("Created submission file %s" % output_file)
+            for i in range(len(predictions)):
+                print('Filling in prediction number : ' + str(i) + '/' + str(len(predictions)))
+                short_data_file = '/'.join(data_files[i].split('/')[-2:])
+                output_line = [short_data_file]
 
-                    prediction = predictions[i]
-                    values, indices = tf.nn.top_k(prediction, k=5, sorted=True)
-                    labels = map(str, indices.eval().tolist())
+                prediction = predictions[i]
+                np_prediction = np.array(prediction)
+                ind = np.argpartition(np_prediction, -5)[-5:]
+                indices = ind[np.argsort(a[ind])][::-1]
+                # values, indices = np.argpartition(prediction, 5)
+                labels = list(map(str, indices))
 
-                    output_line.extend(labels)
-                    out_f.write(' '.join(output_line) + '\n')
-            out_f.close()
-        pred_f.close()
+                output_line.extend(labels)
+                out_f.write(' '.join(output_line) + '\n')
+        out_f.close()
+    pred_f.close()
