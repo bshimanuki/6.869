@@ -57,7 +57,7 @@ def run_test(checkpoint_file, model_name):
             for i in range(8):
                 test_feed_dict = {x: _data[i]}
                 test_predictions = sess.run(prediction, feed_dict=test_feed_dict)
-                single_prediction.add(np.array(test_predictions))
+                single_prediction = np.add(single_prediction,np.array(test_predictions))
 
             predictions.append(single_prediction/8)
             print('Processing batch number: %d' % n)
