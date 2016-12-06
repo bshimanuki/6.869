@@ -40,10 +40,12 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     parser.add_argument("-k", "--checkpoint-max-keep", type=int, default=30, help="The maximum number of checkpoints to keep before deleting old ones")
     parser.add_argument("-t", "--checkpoint-hours", type=int, default=2, help="Always keep 1 checkpoint every n hours")
     parser.add_argument("-f", "--load-file", type=str, help="filename of saved checkpoint")
-    parser.add_argument("-o", "--name", type=str, default=githashval,help="Saved checkpoints will be named 'name'__'timestamp'-'step'. defaults to the git hash")
+    parser.add_argument("-o", "--name", type=str, default='',help="Saved checkpoints will be named 'name'__'timestamp'-'step'. defaults to the git hash")
 
     args = parser.parse_args()
-    args.name += '__' + timestamp
+    if args.name:
+        args.name += '__'
+    args.name += githashval + '__' + timestamp
 
     print("Starting Training......Git commit : %s\n Model: TODO\n"%githashval)
     print("Description:")
