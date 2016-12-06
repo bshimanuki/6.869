@@ -224,6 +224,6 @@ if __name__ == '__main__':
     ### Example when running BrianNet
     #run(target_categories, optimizer, {}, {}, model=BrianNet())
 
-    model = AlexNetSmall(keep_prob)
-    # model = VGGNet(keep_prob)
+    # model = AlexNetSmall(keep_prob)
+    model = VGGNet(keep_prob)
     run(target_categories, optimizer, {keep_prob: 1.}, {keep_prob: KEEP_PROB}, model=model)
