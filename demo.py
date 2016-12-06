@@ -181,7 +181,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
                       (val_top1, val_top5))
                 sys.stdout.flush()
 
-            if variables['conv_w'] and step % EVAL_IMAGE_FREQUENCY == 0:
+            if variables['conv_w'] and (step == 1 or step % EVAL_IMAGE_FREQUENCY == 0):
                 summary = weight_to_image_summary(variables['conv_w'][0], name='weights/%d'%step)
                 _summary = sess.run(summary)
                 train_writer.add_summary(_summary)
