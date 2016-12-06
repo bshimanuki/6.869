@@ -59,12 +59,13 @@ def run_test(checkpoint_file, model_name):
                 test_predictions = sess.run(prediction, feed_dict=test_feed_dict)
                 single_prediction.append(test_predictions)
                 
-                ind = np.argpartition(test_predictions, -5)[-5:]
-                print(type(test_predictions))
-                print(len(test_predictions))
-                print(test_predictions)
-                print(np.argsort(test_predictions[ind]))
-                indices = ind[np.argsort(test_predictions[ind])][::-1]
+                ind = np.argpartition(test_predictions[0], -5)[-5:]
+                print(type(test_predictions[0]))
+                print(len(test_predictions[0]))
+                print(test_predictions[0])
+                print(ind)
+                print(np.argsort(test_predictions[0][ind]))
+                indices = ind[np.argsort(test_predictions[0][ind])][::-1]
                 labels = list(map(str, indices))
                 print(i)
                 print(labels)
