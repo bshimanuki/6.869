@@ -1,3 +1,4 @@
+from collections import defaultdict
 import math
 import operator
 from functools import reduce
@@ -5,7 +6,7 @@ from functools import reduce
 import numpy as np
 import tensorflow as tf
 
-from constants import SEED, TYPE
+from constants import SEED, TYPE, FLAG_BATCH_NORMALIZATION, FLAG_TRAIN
 
 
 def weight_variable(shape, name=None):
@@ -43,8 +44,7 @@ def num_parameters(variables):
     return n
 
 
-def conv_layer(input_layer, depth, window, stride=1, activation_fn=tf.nn.relu, pool=None, lrn=None, name=None,
-               variables=None):
+def conv_layer(input_layer, depth, window, stride=1, activation_fn=tf.nn.relu, pool=None, lrn=None, name=None, bn=FLAG_BATCH_NORMALIZATION, variables=None):
     """Construct a convolutional layer which takes input_layer as input.
 
     input_layer -> output
@@ -59,12 +59,20 @@ def conv_layer(input_layer, depth, window, stride=1, activation_fn=tf.nn.relu, p
     :param name:
     :param variables: dict with keys conv_w and conv_b to add weight and bias variables to
     """
+
+    if variables is None:
+        variables = defaultdict(list)
     with tf.name_scope(name):
         assert(input_layer.get_shape().ndims == 4)
         w = weight_variable([window, window, input_layer.get_shape().as_list()[-1], depth], name)
-        b = bias_variable([depth], name)
-        conv = tf.nn.conv2d(input_layer, w, strides=[1, stride, stride, 1], padding='SAME') + b
-        # Note: Sample code seems to use tf.nn.bias_add instead of straight addition here.
+        variables['conv_w'].append(w)
+        conv = tf.nn.conv2d(input_layer, w, strides=[1, stride, stride, 1], padding='SAME')
+        if bn:
+            conv = tf.contrib.layers.batch_norm(conv, is_training=FLAG_TRAIN)
+        else:
+            b = bias_variable([depth], name)
+            variables['conv_b'].append(b)
+            conv = tf.nn.bias_add(conv, b)
         with tf.name_scope('output/' + name):
             output = activation_fn(conv, name='activation')
             if lrn is not None:
@@ -79,15 +87,12 @@ def conv_layer(input_layer, depth, window, stride=1, activation_fn=tf.nn.relu, p
             if pool is not None:
                 (pool_ksize, pool_stride) = pool
                 output = tf.nn.max_pool(output, ksize=[1, pool_ksize, pool_ksize, 1], strides=[1, pool_stride, pool_stride, 1], padding='SAME')
-        if variables is not None:
-            variables['conv_w'].append(w)
-            variables['conv_b'].append(b)
         tf.histogram_summary('%s/activation' % (name if name is not None else ''), output)
         tf.add_to_collection(name, output)
         return output
 
 
-def ff_layer(input_layer, depth, activation_fn=tf.nn.relu, dropout=None, name=None, activation=True, variables=None):
+def ff_layer(input_layer, depth, activation_fn=tf.nn.relu, dropout=None, name=None, activation=True, bn=FLAG_BATCH_NORMALIZATION, variables=None):
     """Construct a fully connected layer which takes input_layer as input.
 
     input_layer -> output
@@ -101,22 +106,28 @@ def ff_layer(input_layer, depth, activation_fn=tf.nn.relu, dropout=None, name=No
     :param activation: boolean for whether to use the activation function (should be False for last layer)
     :param variables: dict with keys ff_w and ff_b to add weight and bias variables to
     """
+
+    if variables is None:
+        variables = defaultdict(list)
     with tf.name_scope(name):
         assert(input_layer.get_shape().ndims == 2)
         w = weight_variable([input_layer.get_shape().as_list()[-1], depth], name)
-        b = bias_variable([depth], name)
-        with tf.name_scope('hidden/' + name):
-            hidden = tf.matmul(input_layer, w) + b
+        variables['ff_w'].append(w)
+        hidden = tf.matmul(input_layer, w)
+        if bn:
+            hidden = tf.contrib.layers.batch_norm(hidden, is_training=FLAG_TRAIN)
+        else:
+            b = bias_variable([depth], name)
+            variables['ff_b'].append(b)
+            hidden = tf.nn.bias_add(hidden, b)
+        with tf.name_scope('output/' + name):
             if activation:
-                # TODO: potentially change this to just passign in an identity as the activation function
+                # TODO: potentially change this to just passing in an identity as the activation function
                 hidden = activation_fn(hidden, name='activation')
             if dropout is not None:
                 keep_prob = dropout
                 hidden = tf.nn.dropout(hidden, keep_prob)
-        if variables is not None:
-            variables['ff_w'].append(w)
-            variables['ff_b'].append(b)
-        tf.histogram_summary('%s/hidden' % (name if name is not None else ''), hidden)
+        tf.histogram_summary('%s/output' % (name if name is not None else ''), hidden)
         tf.add_to_collection(name, hidden)
         return hidden
 

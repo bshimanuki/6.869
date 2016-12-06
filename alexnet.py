@@ -18,7 +18,7 @@ class AlexNet(Model):
                            lrn=(5, 1.0, 1e-4, 0.75), name='conv2', variables=variables)
         conv3 = conv_layer(conv2, depth=384, window=3, activation_fn=tf.nn.relu, name='conv3',
                            variables=variables)
-        conv4 = conv_layer(conv3, depth=256, window=3, activation_fn=tf.nn.relu, name='conv4',
+        conv4 = conv_layer(conv3, depth=384, window=3, activation_fn=tf.nn.relu, name='conv4',
                            variables=variables)
         conv5 = conv_layer(conv4, depth=256, window=3, activation_fn=tf.nn.relu, pool=(3, 2), name='conv5',
                            variables=variables)

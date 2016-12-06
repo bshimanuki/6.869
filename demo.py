@@ -40,10 +40,12 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     parser.add_argument("-k", "--checkpoint-max-keep", type=int, default=30, help="The maximum number of checkpoints to keep before deleting old ones")
     parser.add_argument("-t", "--checkpoint-hours", type=int, default=2, help="Always keep 1 checkpoint every n hours")
     parser.add_argument("-f", "--load-file", type=str, help="filename of saved checkpoint")
-    parser.add_argument("-o", "--name", type=str, default=githashval,help="Saved checkpoints will be named 'name'__'timestamp'-'step'. defaults to the git hash")
+    parser.add_argument("-o", "--name", type=str, default='',help="Saved checkpoints will be named 'name'__'timestamp'-'step'. defaults to the git hash")
 
     args = parser.parse_args()
-    args.name += '__' + timestamp
+    if args.name:
+        args.name += '__'
+    args.name += githashval + '__' + timestamp
 
     print("Starting Training......Git commit : %s\n Model: TODO\n"%githashval)
     print("Description:")
@@ -73,10 +75,24 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
     logits, variables = model.model(x)
     prediction = tf.nn.softmax(logits)
-    loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
-    loss_summary = tf.scalar_summary('Loss', loss)
+    softmax_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
+
+    conv_regularizers = sum(map(tf.nn.l2_loss, variables['conv_w'] + variables['conv_b']))
+    ff_regularizers = sum(map(tf.nn.l2_loss, variables['ff_w'] + variables['ff_b']))
+    conv_reg_loss = CONV_REG * conv_regularizers
+    ff_reg_loss = FF_REG * ff_regularizers
+    loss = softmax_loss + conv_reg_loss + ff_reg_loss
+
+    loss_summary = tf.scalar_summary('Loss', softmax_loss)
+    conv_reg_loss_summary = tf.scalar_summary('Convolution Regularizer Loss', conv_reg_loss)
+    ff_reg_loss_summary = tf.scalar_summary('Fully Connected Regularizer Loss', ff_reg_loss)
+    total_loss_summary = tf.scalar_summary('Total Loss', loss)
+
     optimizer_op = optimizer.minimize(loss)
+
     print('Model %s has %d parameters.' % (model.name(), num_parameters(variables)))
+    print('\t%d conv parameters.' % num_parameters({k:v for k,v in variables.items() if k.startswith('conv')}))
+    print('\t%d ff parameters.' % num_parameters({k:v for k,v in variables.items() if k.startswith('ff')}))
 
     tf.add_to_collection('logits', logits)
     tf.add_to_collection('prediction', prediction)
@@ -181,7 +197,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
                       (val_top1, val_top5))
                 sys.stdout.flush()
 
-            if variables['conv_w'] and step % EVAL_IMAGE_FREQUENCY == 0:
+            if variables['conv_w'] and (step == 1 or step % EVAL_IMAGE_FREQUENCY == 0):
                 summary = weight_to_image_summary(variables['conv_w'][0], name='weights/%d'%step)
                 _summary = sess.run(summary)
                 train_writer.add_summary(_summary)
@@ -197,8 +213,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
         coord.join(threads)
 
 if __name__ == '__main__':
-    learning_rate = 1.0
-    # optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+    # optimizer = tf.train.AdamOptimizer(0.001)
     optimizer = tf.train.AdagradOptimizer(0.01)
     target_categories = []
     # target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
