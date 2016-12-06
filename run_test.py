@@ -62,7 +62,7 @@ def run_test(checkpoint_file, model_name):
                 ind = np.argpartition(test_predictions, -5)[-5:]
                 print(type(test_predictions))
                 print(len(test_predictions))
-                print(ind)
+                print(test_predictions)
                 print(np.argsort(test_predictions[ind]))
                 indices = ind[np.argsort(test_predictions[ind])][::-1]
                 labels = list(map(str, indices))
