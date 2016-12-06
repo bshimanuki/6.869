@@ -18,7 +18,7 @@ Parameters for each run.
     :param FLAG_RANDOM_FLIP:
 """
 IMAGES_PER_CAT = None
-BATCH_SIZE = 100
+BATCH_SIZE = 50
 NUM_EPOCHS = 100
 SEED = 1234
 KEEP_PROB = 0.5
