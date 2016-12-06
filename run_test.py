@@ -62,6 +62,7 @@ def run_test(checkpoint_file, model_name):
             average_prediction = np.average(np.array(single_prediction), axis=0)
             predictions.extend(average_prediction.tolist())
             print('Processing batch number: %d' % n)
+            print(len(predictions))
             n+=1
 
         # Save predictions in pickle file
