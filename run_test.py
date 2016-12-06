@@ -10,6 +10,7 @@ from util import *
 
 
 def run_test(checkpoint_file, model_name):
+    FLAG_TRAIN = False
 
     # Get test data
     test_data, test_labels, _ = get_input('test', shuffle=False)
