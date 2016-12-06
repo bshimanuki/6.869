@@ -112,7 +112,7 @@ def make_submission_file(prediction_file):
                 prediction = predictions[i]
                 np_prediction = np.array(prediction)
                 ind = np.argpartition(np_prediction, -5)[-5:]
-                indices = ind[np.argsort(a[ind])][::-1]
+                indices = ind[np.argsort(np_prediction[ind])][::-1]
                 # values, indices = np.argpartition(prediction, 5)
                 labels = list(map(str, indices))
 
