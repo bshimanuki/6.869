@@ -75,10 +75,24 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
     logits, variables = model.model(x)
     prediction = tf.nn.softmax(logits)
-    loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
-    loss_summary = tf.scalar_summary('Loss', loss)
+    softmax_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
+
+    conv_regularizers = sum(map(tf.nn.l2_loss, variables['conv_w'] + variables['conv_b']))
+    ff_regularizers = sum(map(tf.nn.l2_loss, variables['ff_w'] + variables['ff_b']))
+    conv_reg_loss = CONV_REG * conv_regularizers
+    ff_reg_loss = FF_REG * ff_regularizers
+    loss = softmax_loss + conv_reg_loss + ff_reg_loss
+
+    loss_summary = tf.scalar_summary('Loss', softmax_loss)
+    conv_reg_loss_summary = tf.scalar_summary('Convolution Regularizer Loss', conv_reg_loss)
+    ff_reg_loss_summary = tf.scalar_summary('Fully Connected Regularizer Loss', ff_reg_loss)
+    total_loss_summary = tf.scalar_summary('Total Loss', loss)
+
     optimizer_op = optimizer.minimize(loss)
+
     print('Model %s has %d parameters.' % (model.name(), num_parameters(variables)))
+    print('\t%d conv parameters.' % num_parameters({k:v for k,v in variables.items() if k.startswith('conv')}))
+    print('\t%d ff parameters.' % num_parameters({k:v for k,v in variables.items() if k.startswith('ff')}))
 
     tf.add_to_collection('logits', logits)
     tf.add_to_collection('prediction', prediction)
