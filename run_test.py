@@ -10,7 +10,6 @@ from util import *
 
 
 def run_test(checkpoint_file, model_name):
-    FLAG_TRAIN = False
 
     # Get test data
     test_data, test_labels, _ = get_input('test', shuffle=False)
@@ -43,14 +42,10 @@ def run_test(checkpoint_file, model_name):
 
     with tf.Session(config=config) as sess:
 
-        # Restore variables - original way
+        # Restore variables
         saver.restore(sess=sess, save_path=checkpoint_file)
         print("Restored variables from checkpoint %s" % checkpoint_file)
 
-        # Restore model - new way
-        # saver = tf.train.import_meta_graph('checkpoints/VGGNet/vgg_flip_crop__2016-12-04_07:51:46.meta')
-
-        sess.run(tf.initialize_all_variables())
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
@@ -70,7 +65,7 @@ def run_test(checkpoint_file, model_name):
             prefix = filename[-2]
         else:
             prefix = filename[-1]
-        prediction_file = PREDICTIONS_DIR + 'prediction___' + prefix
+        prediction_file = PREDICTIONS_DIR + 'prediction__' + prefix
         with open(prediction_file, 'wb') as f:
             pickle.dump(predictions, f)
         print('Created new pickle file with predictions in %s' % prediction_file)
@@ -87,6 +82,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
+    # run_test(args.file, args.model)
     prediction_file = run_test(args.file, args.model)
 
     make_submission_file(prediction_file)
