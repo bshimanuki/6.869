@@ -12,7 +12,7 @@ class AlexNetSmall(Model):
 
     def model(self, data):
         variables = defaultdict(list)
-        conv1 = conv_layer(data, depth=96, window=6, stride=2, activation_fn=tf.nn.relu, pool=(3, 2),
+        conv1 = conv_layer(data, depth=96, window=11, stride=2, activation_fn=tf.nn.relu, pool=(3, 2),
                            lrn=(5, 1.0, 1e-4, 0.75), name='conv1', variables=variables)
         conv2 = conv_layer(conv1, depth=256, window=5, activation_fn=tf.nn.relu, pool=(3, 2),
                            lrn=(5, 1.0, 1e-4, 0.75), name='conv2', variables=variables)
