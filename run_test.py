@@ -84,8 +84,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # run_test(args.file, args.model)
-    checkpoint_file = 'checkpoints/AlexNetSmall/2016-12-02_11:17:57__7cd73d7-0'
-    model_name = 'AlexNet'
-    prediction_file = run_test(checkpoint_file, model_name)
+    prediction_file = run_test(args.file, args.model)
 
     make_submission_file(prediction_file)

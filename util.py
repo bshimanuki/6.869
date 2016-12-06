@@ -49,6 +49,7 @@ def get_files_and_labels(partition, target_categories=[], n=None):
     if partition == 'test':
         files = glob.glob(DATA_DIR + ('%s/*.jpg' % partition))
         labels = [-1] * len(files)
+        files.sort()
         return files, labels
 
     # Retrieve training, validation data and labels
