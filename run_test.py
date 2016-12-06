@@ -12,7 +12,7 @@ from util import *
 def run_test(checkpoint_file, model_name):
 
     # Get test data
-    test_data, test_labels, _ = get_inputs_crop_flip('test', shuffle=False)
+    test_data, test_labels, _ = get_inputs_crop_flip('test')
     print("Retrieved test data successfully")
     test_size = get_size('test')
 
@@ -56,7 +56,9 @@ def run_test(checkpoint_file, model_name):
             print(type(_data))
             print(type(_data[0]))
             print(type(_data[0][0]))
-            assert((_data[0] == _data[2]))
+            print(type(_data[0][0][0]))
+
+            assert((_data[0].all() == _data[2].all()))
             single_prediction = []
             for i in range(8):
                 test_feed_dict = {x: _data[i]}

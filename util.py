@@ -121,7 +121,7 @@ def make_submission_file(prediction_file):
         out_f.close()
     pred_f.close()
 
-def get_inputs_crop_flip(partition, target_categories=[], n=None, shuffle=True):
+def get_inputs_crop_flip(partition, target_categories=[], n=None):
     """
     :param partition: String matching folder containing images. Valid values are 'test', 'train' and 'val'
     :param target_categories: Target categories. Defaults to all categories if not specified.
@@ -129,7 +129,7 @@ def get_inputs_crop_flip(partition, target_categories=[], n=None, shuffle=True):
     :return:
     """
     files, labels = get_files_and_labels(partition, target_categories, n)
-    queue = tf.train.slice_input_producer([files, labels], shuffle=shuffle)
+    queue = tf.train.slice_input_producer([files, labels], shuffle=False)
     _file = queue[0]
     image = tf.read_file(_file)
     label = queue[1]
