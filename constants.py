@@ -26,8 +26,8 @@ EVAL_FREQUENCY = 10 # 10 will keep the epochs the same
 EVAL_IMAGE_FREQUENCY = 100
 MIN_EVAL_STEP = EVAL_FREQUENCY # to skip unstable part at beginning
 USE_GPU = True
-CONV_REG = 5e-4
-FF_REG = 5e-4
+CONV_REG = 5e-3
+FF_REG = 5e-3
 
 # TODO: Maybe don't use these constants directly but pass in as parameters?
 FLAG_RESIZE_AND_CROP = True
