@@ -49,7 +49,7 @@ Constants for logging and storing data. You are unlikely to want to modify these
 """
 PWD = os.path.dirname(__file__) + '/'
 DATA_DIR = PWD + 'data/images/'
-CHECKPOINT_DIRECTORY = PWD + 'checkpoints/'
+CHECKPOINT_DIRECTORY = '/mnt/checkpoints/'
 LOGS_DIR = PWD + 'logs/'
 TB_LOGS_DIR = PWD + 'tb_logs/'
 
