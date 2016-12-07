@@ -216,9 +216,9 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
 if __name__ == '__main__':
     # optimizer = tf.train.AdamOptimizer(0.001)
-    optimizer = tf.train.AdagradOptimizer(0.01)
-    target_categories = []
-    # target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
+    optimizer = tf.train.AdagradOptimizer(0.001)
+    # target_categories = []
+    target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
     # target_categories = ALL_CATEGORIES[:10]
 
     keep_prob = tf.placeholder(tf.float32, name='keep_prob') # we need to define a probability for the dropout

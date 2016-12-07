@@ -18,7 +18,8 @@ def weight_variable(shape, name=None):
     :param name:
     :return:
     """
-    sigma=np.sqrt(2./np.product(shape[:-1]))
+    # sigma=np.sqrt(2./np.product(shape[:-1]))
+    sigma=0.01
     with tf.name_scope('weight'):
         weight = tf.Variable(tf.truncated_normal(
             shape,
