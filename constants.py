@@ -24,6 +24,7 @@ SEED = 1234
 KEEP_PROB = 0.5
 EVAL_FREQUENCY = 10 # 10 will keep the epochs the same
 EVAL_IMAGE_FREQUENCY = 1000
+HISTOGRAM_FREQUENCY = 100
 MIN_EVAL_STEP = EVAL_FREQUENCY # to skip unstable part at beginning
 USE_GPU = True
 CONV_REG = 1e-4

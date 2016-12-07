@@ -89,6 +89,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     conv_reg_loss_summary = tf.scalar_summary('Convolution Regularizer Loss', conv_reg_loss)
     ff_reg_loss_summary = tf.scalar_summary('Fully Connected Regularizer Loss', ff_reg_loss)
     total_loss_summary = tf.scalar_summary('Total Loss', loss)
+    extra_loss_summaries = tf.merge_summary([conv_reg_loss_summary, ff_reg_loss_summary, total_loss_summary])
 
     optimizer_op = optimizer.minimize(loss)
 
@@ -106,8 +107,9 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
         accuracy_5 = 100 * accuracy(logits, y, k=5)
         accuracy_5_summary = tf.scalar_summary('Top 5 Accuracy', accuracy_5)
 
-    merged = tf.merge_all_summaries()
+    merged_summaries = tf.merge_all_summaries()
     metric_summaries = tf.merge_summary([loss_summary, accuracy_1_summary, accuracy_5_summary])
+    metric_with_loss_summaries = tf.merge_summary([metric_summaries, extra_loss_summaries])
 
     saver = tf.train.Saver(max_to_keep = args.checkpoint_max_keep, keep_checkpoint_every_n_hours = args.checkpoint_hours)
     if args.checkpoint_frequency:
@@ -159,8 +161,12 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
             train_feed_dict.update(train_feed_dict_supp)
 
             # Run the optimizer to update weights can calculate loss
+            if step % HISTOGRAM_FREQUENCY == 0:
+                train_summaries = merged_summaries
+            else:
+                train_summaries = metric_with_loss_summaries
             _, train_l, train_predictions, minibatch_top1, minibatch_top5, train_summary = sess.run(
-                    [optimizer_op, loss, prediction, accuracy_1, accuracy_5, merged],
+                    [optimizer_op, loss, prediction, accuracy_1, accuracy_5, train_summaries],
                     feed_dict=train_feed_dict)
             if step >= MIN_EVAL_STEP:
                 train_writer.add_summary(train_summary, step)
