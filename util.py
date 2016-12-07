@@ -90,7 +90,7 @@ def accuracy(predictions, labels, k=1):
     # print('\t', Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
     return tf.reduce_mean(tf.cast(correct, tf.float32))
 
-def make_submission_file(prediction_file):
+def make_submission_file(prediction_file, aggregation_method):
     data_files = glob.glob(DATA_DIR + 'test/*.jpg')
     data_files.sort()
 
@@ -113,15 +113,15 @@ def make_submission_file(prediction_file):
                 np_prediction = np.array(prediction)
                 num_prediction_per_image = len(np_prediction)
 
-                # average 
-                # ensemble_prediction = np.average(np_prediction, axis = 0)
+                if (aggregation_method == "average"):
+                    aggregate_prediction = np.average(np_prediction, axis = 0)
+                elif (aggregation_method == "product"):
+                    ensemble_prediction = np.prod(np_prediction, axis=0)
+                elif (aggregation_method == "max"):
+                    ensemble_prediction = np_prediction.max(axis=0)
+                else:
+                    raise("Invalid aggregation method")
                 
-                # product
-                # ensemble_prediction = np.prod(np_prediction, axis=0)
-
-                # max
-                ensemble_prediction = np_prediction.max(0)
-
                 ind = np.argpartition(ensemble_prediction, -5)[-5:]
                 indices = ind[np.argsort(ensemble_prediction[ind])][::-1]
                 labels = list(map(str, indices))

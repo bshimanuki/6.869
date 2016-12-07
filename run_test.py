@@ -76,7 +76,8 @@ def run_test(checkpoint_file, model_name):
 #            for i in range(5):
 #                average_prediction[indices[i]] = 6-i
 
-            predictions.extend(single_prediction.tolist())
+            predictions.extend(single_prediction.tolist()) 
+            # NUM_IMAGES * 8 * NUM_CAT
             print('Processing batch number: %d' % n)
             n+=1
 
@@ -100,10 +101,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", type=str, help="Model Checkpoint File")
     parser.add_argument("-m", "--model", type=str , help="Model Type (AlexNet, VGGNet)")
-
+    parser.add_argument("-g", "--aggregate", type=str, help="Aggregation method (average, product, max)")
     args = parser.parse_args()
 
     # run_test(args.file, args.model)
     prediction_file = run_test(args.file, args.model)
 
-    make_submission_file(prediction_file)
+    make_submission_file(prediction_file, args.aggregate)
