@@ -6,6 +6,7 @@ from functools import reduce
 import numpy as np
 import tensorflow as tf
 
+from batch_norm import batch_norm
 from constants import SEED, TYPE, FLAG_BATCH_NORMALIZATION, FLAG_TRAIN
 
 
@@ -69,7 +70,7 @@ def conv_layer(input_layer, depth, window, stride=1, activation_fn=tf.nn.relu, p
         variables['conv_w'].append(w)
         conv = tf.nn.conv2d(input_layer, w, strides=[1, stride, stride, 1], padding='SAME')
         if bn:
-            conv = tf.contrib.layers.batch_norm(conv, is_training=FLAG_TRAIN)
+            conv = batch_norm(conv, is_training=FLAG_TRAIN)
         else:
             b = bias_variable([depth], name)
             variables['conv_b'].append(b)
@@ -115,8 +116,8 @@ def ff_layer(input_layer, depth, activation_fn=tf.nn.relu, dropout=None, name=No
         w = weight_variable([input_layer.get_shape().as_list()[-1], depth], name)
         variables['ff_w'].append(w)
         hidden = tf.matmul(input_layer, w)
-        if bn:
-            hidden = tf.contrib.layers.batch_norm(hidden, is_training=FLAG_TRAIN)
+        if bn and activation:
+            hidden = batch_norm(hidden, is_training=FLAG_TRAIN)
         else:
             b = bias_variable([depth], name)
             variables['ff_b'].append(b)
