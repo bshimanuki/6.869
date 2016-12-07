@@ -111,9 +111,19 @@ def make_submission_file(prediction_file):
 
                 prediction = predictions[i]
                 np_prediction = np.array(prediction)
-                ind = np.argpartition(np_prediction, -5)[-5:]
-                indices = ind[np.argsort(np_prediction[ind])][::-1]
-                # values, indices = np.argpartition(prediction, 5)
+                num_prediction_per_image = len(np_prediction)
+
+                # average 
+                # ensemble_prediction = np.average(np_prediction, axis = 0)
+                
+                # product
+                # ensemble_prediction = np.prod(np_prediction, axis=0)
+
+                # max
+                ensemble_prediction = np_prediction.max(0)
+
+                ind = np.argpartition(ensemble_prediction, -5)[-5:]
+                indices = ind[np.argsort(ensemble_prediction[ind])][::-1]
                 labels = list(map(str, indices))
 
                 output_line.extend(labels)

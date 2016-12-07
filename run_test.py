@@ -63,6 +63,9 @@ def run_test(checkpoint_file, model_name):
             # single_prediction is 8 * BATCH_SIZE * NUM_CAT
             single_prediction = np.array(single_prediction)
             single_prediction = np.swapaxes(single_prediction, 0, 1)
+
+            #single prediction is now BATCH_SIZE * 8 * NUM_CAT
+
             # average_prediction = np.prod(np.array(single_prediction), axis=0)
 
 #            flat_prediction = np.array(single_prediction).flatten()
