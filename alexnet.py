@@ -26,7 +26,7 @@ class AlexNet(Model):
         # ff_layer(input_layer, depth, activation_fn=tf.nn.sigmoid, dropout=None, name=None, activation=True, variables=None):
         fc6 = ff_layer(
             conv5r,
-            depth=512, # TODO: return to 4096
+            depth=4096,
             activation_fn = tf.nn.relu,
             dropout = self.keep_prob,
             name='fc6',
@@ -34,7 +34,7 @@ class AlexNet(Model):
         )
         fc7 = ff_layer(
             fc6,
-            depth=512, # TODO: return to 4096
+            depth=4096,
             activation_fn = tf.nn.relu,
             dropout = self.keep_prob,
             name='fc7',
