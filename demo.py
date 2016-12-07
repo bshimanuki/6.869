@@ -79,10 +79,14 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     prediction = tf.nn.softmax(logits)
     softmax_loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits, y))
 
+    global_step = tf.Variable(0, trainable=False)
+    conv_reg_k = tf.train.exponential_decay(1e-4, global_step, decay_steps=10000, decay_rate=0.1, staircase=False)
+    ff_reg_k = 1e-4
+
     conv_regularizers = sum(map(tf.nn.l2_loss, variables['conv_w'] + variables['conv_b']))
     ff_regularizers = sum(map(tf.nn.l2_loss, variables['ff_w'] + variables['ff_b']))
-    conv_reg_loss = CONV_REG * conv_regularizers
-    ff_reg_loss = FF_REG * ff_regularizers
+    conv_reg_loss = conv_reg_k * conv_regularizers
+    ff_reg_loss = ff_reg_k * ff_regularizers
     loss = softmax_loss + conv_reg_loss + ff_reg_loss
 
     loss_summary = tf.scalar_summary('Loss', softmax_loss)
@@ -91,7 +95,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     total_loss_summary = tf.scalar_summary('Total Loss', loss)
     extra_loss_summaries = tf.merge_summary([conv_reg_loss_summary, ff_reg_loss_summary, total_loss_summary])
 
-    optimizer_op = optimizer.minimize(loss)
+    optimizer_op = optimizer.minimize(loss, global_step=global_step)
 
     print('Model %s has %d parameters.' % (model.name(), num_parameters(variables)))
     print('\t%d conv parameters.' % num_parameters({k:v for k,v in variables.items() if k.startswith('conv')}))
