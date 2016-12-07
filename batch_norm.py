@@ -363,6 +363,7 @@ def batch_norm(
     ValueError: if the rank of `inputs` is undefined.
     ValueError: if rank or channels dimension of `inputs` is undefined.
   """
+  is_training = True # override, TODO: fix
   if fused:
     if batch_weights is not None:
       raise ValueError('Weighted mean and variance is not currently '
