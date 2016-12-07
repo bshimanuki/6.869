@@ -60,10 +60,20 @@ def run_test(checkpoint_file, model_name):
                 test_predictions = sess.run(prediction, feed_dict=test_feed_dict)
                 single_prediction.append(test_predictions)
 
-            # average_prediction = np.average(np.array(single_prediction), axis=0)
-            average_prediction = np.prod(np.array(single_prediction), axis=0)
+            # single_prediction is 8 * BATCH_SIZE * NUM_CAT
+            single_prediction = np.array(single_prediction)
+            single_prediction = np.swapaxes(single_prediction, 0, 1)
+            # average_prediction = np.prod(np.array(single_prediction), axis=0)
 
-            predictions.extend(average_prediction.tolist())
+#            flat_prediction = np.array(single_prediction).flatten()
+#            ind = np.argpartition(flat_prediction, -40)[-40:]
+#            indices = ind[np.argsort(flat_prediction[ind])][::-1]
+#            indices = np.unique(indices%100)[:5]
+#            average_prediction = np.zeros(100)
+#            for i in range(5):
+#                average_prediction[indices[i]] = 6-i
+
+            predictions.extend(single_prediction.tolist())
             print('Processing batch number: %d' % n)
             n+=1
 
