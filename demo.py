@@ -95,8 +95,6 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     total_loss_summary = tf.scalar_summary('Total Loss', loss)
     extra_loss_summaries = tf.merge_summary([conv_reg_loss_summary, ff_reg_loss_summary, total_loss_summary])
 
-    optimizer_op = optimizer.minimize(loss, global_step=global_step)
-
     print('Model %s has %d parameters.' % (model.name(), num_parameters(variables)))
     print('\t%d conv parameters.' % num_parameters({k:v for k,v in variables.items() if k.startswith('conv')}))
     print('\t%d ff parameters.' % num_parameters({k:v for k,v in variables.items() if k.startswith('ff')}))
@@ -116,6 +114,8 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
     metric_with_loss_summaries = tf.merge_summary([metric_summaries, extra_loss_summaries])
 
     saver = tf.train.Saver(max_to_keep = args.checkpoint_max_keep, keep_checkpoint_every_n_hours = args.checkpoint_hours)
+    optimizer_op = optimizer.minimize(loss, global_step=global_step)
+
     if args.checkpoint_frequency:
         saver.export_meta_graph(checkpoint_prefix + '.meta')
         print('Model graph saved.')
@@ -225,8 +225,8 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
         coord.join(threads)
 
 if __name__ == '__main__':
-    optimizer = tf.train.AdamOptimizer(0.001)
-    # optimizer = tf.train.AdagradOptimizer(0.01)
+    # optimizer = tf.train.AdamOptimizer(0.001)
+    optimizer = tf.train.AdagradOptimizer(0.0001)
     target_categories = []
     # target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
     # target_categories = ALL_CATEGORIES[:10]
