@@ -226,7 +226,7 @@ def run(target_categories, optimizer, val_feed_dict_supp, train_feed_dict_supp, 
 
 if __name__ == '__main__':
     # optimizer = tf.train.AdamOptimizer(0.001)
-    optimizer = tf.train.AdagradOptimizer(0.0001)
+    optimizer = tf.train.AdagradOptimizer(1e-5)
     target_categories = []
     # target_categories = ['playground', 'abbey', 'amphitheater', 'baseball_field', 'bedroom', 'cemetery', 'courtyard', 'kitchen', 'mountain', 'shower']
     # target_categories = ALL_CATEGORIES[:10]
