@@ -20,7 +20,7 @@ Parameters for each run.
 IMAGES_PER_CAT = None
 BATCH_SIZE = 50
 NUM_EPOCHS = 100
-SEED = 1234
+SEED = 12345
 KEEP_PROB = 0.5
 EVAL_FREQUENCY = 10 # 10 will keep the epochs the same
 EVAL_IMAGE_FREQUENCY = 1000
