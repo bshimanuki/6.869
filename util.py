@@ -165,6 +165,5 @@ def get_inputs_crop_flip(partition, target_categories=[], n=None):
     image7 = tf.image.flip_left_right(image3)
     image8 = tf.image.flip_left_right(image4)
 
-    labels = [label]*8
 
-    return [image1, image2, image3, image4, image5, image6, image7, image8], labels, _file
+    return [image1, image2, image3, image4, image5, image6, image7, image8], label, _file
