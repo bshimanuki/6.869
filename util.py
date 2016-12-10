@@ -90,13 +90,13 @@ def accuracy(predictions, labels, k=1):
     # print('\t', Counter(zip(np.argmax(predictions, 1).tolist(), labels)))
     return tf.reduce_mean(tf.cast(correct, tf.float32))
 
-def make_submission_file(prediction_file):
+def make_submission_file(prediction_file, aggregation_method):
     data_files = glob.glob(DATA_DIR + 'test/*.jpg')
     data_files.sort()
 
     prefix_list = prediction_file.split('__')[-2:]
     prefix = '__'.join(prefix_list)
-    output_file = SUBMISSIONS_DIR + 'submission__' + prefix + '.txt'
+    output_file = SUBMISSIONS_DIR + 'submission__' + prefix + '__' + aggregation_method+ '.txt'
 
     with open(prediction_file, 'rb') as pred_f:
         print("Opened prediction file %s" % prediction_file)
@@ -111,12 +111,60 @@ def make_submission_file(prediction_file):
 
                 prediction = predictions[i]
                 np_prediction = np.array(prediction)
-                ind = np.argpartition(np_prediction, -5)[-5:]
-                indices = ind[np.argsort(np_prediction[ind])][::-1]
-                # values, indices = np.argpartition(prediction, 5)
+                num_prediction_per_image = len(np_prediction)
+
+                if (aggregation_method == "average"):
+                    ensemble_prediction = np.average(np_prediction, axis = 0)
+                elif (aggregation_method == "product"):
+                    ensemble_prediction = np.prod(np_prediction, axis=0)
+                elif (aggregation_method == "max"):
+                    ensemble_prediction = np_prediction.max(axis=0)
+                else:
+                    raise("Invalid aggregation method")
+                
+                ind = np.argpartition(ensemble_prediction, -5)[-5:]
+                indices = ind[np.argsort(ensemble_prediction[ind])][::-1]
                 labels = list(map(str, indices))
 
                 output_line.extend(labels)
                 out_f.write(' '.join(output_line) + '\n')
         out_f.close()
     pred_f.close()
+
+def get_inputs_crop_flip(partition, target_categories=[], n=None):
+    """
+    :param partition: String matching folder containing images. Valid values are 'test', 'train' and 'val'
+    :param target_categories: Target categories. Defaults to all categories if not specified.
+    :param n: Target number of examples. Defaults to infinity if not specified.
+    :return:
+    """
+    files, labels = get_files_and_labels(partition, target_categories, n)
+    queue = tf.train.slice_input_producer([files, labels], shuffle=False)
+    _file = queue[0]
+    image = tf.read_file(_file)
+    label = queue[1]
+
+    image = tf.image.decode_jpeg(image, channels=NUM_CHANNELS)
+    image = tf.cast(image, TYPE)
+
+    if FLAG_DEMEAN:
+        image = image - IMAGE_MEAN
+    if FLAG_NORMALIZE:
+        image = image/255.
+
+    # image1 = tf.image.crop_to_bounding_box(image, 0, 0, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
+    image1 = tf.image.random_ops.random_crop(image, [IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, NUM_CHANNELS], seed=SEED)
+
+
+    image2 = tf.image.crop_to_bounding_box(image, 0, IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
+    image3 = tf.image.crop_to_bounding_box(image, IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, 0, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
+    image4 = tf.image.crop_to_bounding_box(image, IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
+
+    image5 = tf.image.flip_left_right(image1)
+    image6 = tf.image.flip_left_right(image2)
+    image7 = tf.image.flip_left_right(image3)
+    image8 = tf.image.flip_left_right(image4)
+
+    labels = [label]*8
+
+    return [image1, image2, image3, image4, image5, image6, image7, image8], labels, _file

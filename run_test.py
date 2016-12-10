@@ -12,7 +12,7 @@ from util import *
 def run_test(checkpoint_file, model_name):
 
     # Get test data
-    test_data, test_labels, _ = get_input('test', shuffle=False)
+    test_data, test_labels, _ = get_inputs_crop_flip('test')
     print("Retrieved test data successfully")
     test_size = get_size('test')
 
@@ -30,7 +30,7 @@ def run_test(checkpoint_file, model_name):
     prediction = tf.nn.softmax(logits)
 
     batch_data = tf.train.batch(
-        [test_data],
+        test_data,
         batch_size=BATCH_SIZE,
         capacity=5*BATCH_SIZE)
 
@@ -53,9 +53,31 @@ def run_test(checkpoint_file, model_name):
         n = 0
         for step in range(test_size // BATCH_SIZE):
             _data = sess.run(batch_data)
-            test_feed_dict = {x: _data, FLAG_TRAIN: False}
-            test_predictions = sess.run(prediction, feed_dict=test_feed_dict)
-            predictions.extend(test_predictions)
+
+            single_prediction = []
+            for i in range(8):
+                test_feed_dict = {x: _data[i]}
+                test_predictions = sess.run(prediction, feed_dict=test_feed_dict)
+                single_prediction.append(test_predictions)
+
+            # single_prediction is 8 * BATCH_SIZE * NUM_CAT
+            single_prediction = np.array(single_prediction)
+            single_prediction = np.swapaxes(single_prediction, 0, 1)
+
+            #single prediction is now BATCH_SIZE * 8 * NUM_CAT
+
+            # average_prediction = np.prod(np.array(single_prediction), axis=0)
+
+#            flat_prediction = np.array(single_prediction).flatten()
+#            ind = np.argpartition(flat_prediction, -40)[-40:]
+#            indices = ind[np.argsort(flat_prediction[ind])][::-1]
+#            indices = np.unique(indices%100)[:5]
+#            average_prediction = np.zeros(100)
+#            for i in range(5):
+#                average_prediction[indices[i]] = 6-i
+
+            predictions.extend(single_prediction.tolist()) 
+            # NUM_IMAGES * 8 * NUM_CAT
             print('Processing batch number: %d' % n)
             n+=1
 
@@ -79,10 +101,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", type=str, help="Model Checkpoint File")
     parser.add_argument("-m", "--model", type=str , help="Model Type (AlexNet, VGGNet)")
-
+    parser.add_argument("-g", "--aggregate", type=str, help="Aggregation method (average, product, max)")
     args = parser.parse_args()
 
     # run_test(args.file, args.model)
     prediction_file = run_test(args.file, args.model)
 
-    make_submission_file(prediction_file)
+    make_submission_file(prediction_file, args.aggregate)
