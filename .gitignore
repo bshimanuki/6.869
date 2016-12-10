@@ -5,6 +5,9 @@
 /tb_logs
 /logs
 /checkpoints
+/submissions
+/predictions
+.DS_STORE
 __pycache__
 *.pyc
 *.pem

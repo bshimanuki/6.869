@@ -94,7 +94,7 @@ def make_submission_file(prediction_file, aggregation_method):
     data_files = glob.glob(DATA_DIR + 'test/*.jpg')
     data_files.sort()
 
-    prefix_list = prediction_file.split('__')[-2:]
+    prefix_list = prediction_file.split('__')[1:]
     prefix = '__'.join(prefix_list)
     output_file = SUBMISSIONS_DIR + 'submission__' + prefix + '__' + aggregation_method+ '.txt'
 
