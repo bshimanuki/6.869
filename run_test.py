@@ -166,7 +166,7 @@ def run_validation(checkpoint_file, model_name):
         else:
             prefix = filename[-1]
         prediction_file = PREDICTIONS_DIR + 'val_prediction__' + prefix
-        labels_file = PREDICTIONS_DIR + 'val_labels__' + prefix
+        label_file = PREDICTIONS_DIR + 'val_labels__' + prefix
         
         with open(prediction_file, 'wb') as f:
             pickle.dump(predictions, f)
@@ -178,7 +178,7 @@ def run_validation(checkpoint_file, model_name):
         coord.request_stop()
         coord.join(threads)
 
-    return (prediction_file, labels)
+    return (prediction_file, label_file)
 
 
 
@@ -194,7 +194,8 @@ if __name__ == '__main__':
 
     # run_test(args.file, args.model)
     if args.validation:
-        prediction_file = run_validation(args.file, args.model)
+        prediction_file, label_file = run_validation(args.file, args.model)
+        evaluate_predictions(prediction_file,label_file)
     else:
         prediction_file = run_test(args.file, args.model)
         make_submission_file(prediction_file, args.aggregate)
