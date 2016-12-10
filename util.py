@@ -167,3 +167,64 @@ def get_inputs_crop_flip(partition, target_categories=[], n=None):
 
 
     return [image1, image2, image3, image4, image5, image6, image7, image8], label, _file
+
+def evaluate_predictions(prediction_file, label_file):
+    with open(prediction_file, 'rb') as pred_f, open(label_file, 'rb') as label_f:
+        print("Opened prediction file %s" % prediction_file)
+        predictions = pickle.load(pred_f)
+        labels = pickle.load(label_f)
+
+        max_accuracy_1 = 0
+        max_accuracy_5 = 0
+        average_accuracy_1 = 0
+        average_accuracy_5 = 0 
+        product_accuracy_1 = 0
+        product_accuracy_5 = 0
+
+        for i in range(len(predictions)):
+            prediction = predictions[i]
+            label = labels[i]
+
+            np_prediction = np.array(prediction)
+            num_prediction_per_image = len(np_prediction)
+
+            #average
+            avg = np.average(np_prediction, axis = 0)
+            ind = np.argpartition(avg, -5)[-5:]
+            indices = ind[np.argsort(avg[ind])][::-1]
+            if label == indices[0]:
+                average_accuracy_1+=1
+                average_accuracy_5+=1
+            elif label in indices:
+                average_accuracy_5+=1
+
+            #product
+            prod = np.prod(np_prediction, axis=0)
+            ind = np.argpartition(prod, -5)[-5:]
+            indices = ind[np.argsort(prod[ind])][::-1]
+            if label == indices[0]:
+                product_accuracy_1+=1
+                product_accuracy_5+=1
+            elif label in indices:
+                product_accuracy_5+=1
+
+            m = np_prediction.max(axis=0)
+            ind = np.argpartition(m, -5)[-5:]
+            indices = ind[np.argsort(m[ind])][::-1]
+            if label == indices[0]:
+                max_accuracy_1+=1
+                max_accuracy_5+=1
+            elif label in indices:
+                max_accuracy_5+=1
+
+        max_accuracy_1/=len(predictions)
+        max_accuracy_5/=len(predictions)
+        average_accuracy_1/=len(predictions)
+        average_accuracy_5/=len(predictions)
+        product_accuracy_1/=len(predictions)
+        product_accuracy_5/=len(predictions)
+
+
+        print('max ----- Top 1 : %f, Top5: %f' %(max_accuracy_1, max_accuracy_5))
+        print('avg ----- Top 1 : %f, Top5: %f' %(average_accuracy_1, average_accuracy_5))
+        print('prod ----- Top 1 : %f, Top5: %f' %(product_accuracy_1, product_accuracy_5))
