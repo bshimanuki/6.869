@@ -170,7 +170,7 @@ def run_validation(checkpoint_file, model_name):
         
         with open(prediction_file, 'wb') as f:
             pickle.dump(predictions, f)
-        with open(labels_file, 'wb') as f:
+        with open(label_file, 'wb') as f:
             pickle.dump(labels, f)
 
         print('Created new pickle file with predictions in %s' % prediction_file)
