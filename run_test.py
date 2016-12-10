@@ -117,7 +117,8 @@ def run_validation(checkpoint_file, model_name):
     batch_data, batch_labels = tf.train.batch(
         [test_data, test_labels],
         batch_size=BATCH_SIZE,
-        capacity=5*BATCH_SIZE)
+        capacity=5*BATCH_SIZE
+        )
 
     if USE_GPU:
         config = tf.ConfigProto()
@@ -139,7 +140,7 @@ def run_validation(checkpoint_file, model_name):
         n = 0
         for step in range(sample_size // BATCH_SIZE):
             _data, _labels = sess.run([batch_data, batch_labels])
-
+            _data = np.swapaxes(_data,0,1)
             single_prediction = []
             for i in range(8):
                 test_feed_dict = {x: _data[i]}
@@ -155,10 +156,9 @@ def run_validation(checkpoint_file, model_name):
             # _labels is BATCH_SIZE
             labels.extend(_labels)
 
-
             predictions.extend(single_prediction.tolist()) 
             # NUM_IMAGES * 8 * NUM_CAT
-            print('Processing batch number: %d' % n)
+            print('Processing batch number: %d / %d' % (n, sample_size//BATCH_SIZE))
             n+=1
 
         # Save predictions in pickle file
