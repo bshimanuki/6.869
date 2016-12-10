@@ -186,7 +186,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", type=str, help="Model Checkpoint File")
     parser.add_argument("-m", "--model", type=str , help="Model Type (AlexNet, VGGNet)")
-    parser.add_argument("-g", "--aggregate", type=str, help="Aggregation method (average, product, max)")
     parser.add_argument("-v", "--validation", action='store_true')
     parser.set_defaults(validation=False)
 
@@ -198,4 +197,6 @@ if __name__ == '__main__':
         evaluate_predictions(prediction_file,label_file)
     else:
         prediction_file = run_test(args.file, args.model)
-        make_submission_file(prediction_file, args.aggregate)
+        make_submission_file(prediction_file, 'max')
+        make_submission_file(prediction_file, 'average')
+        make_submission_file(prediction_file, 'product')
