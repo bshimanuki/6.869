@@ -50,7 +50,7 @@ def run_test(checkpoint_file, model_name):
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
         predictions = []
-        n = 0
+
         for step in range(sample_size // BATCH_SIZE):
             _data = sess.run(batch_data)
 
@@ -78,8 +78,7 @@ def run_test(checkpoint_file, model_name):
 
             predictions.extend(single_prediction.tolist()) 
             # NUM_IMAGES * 8 * NUM_CAT
-            print('Processing batch number: %d' % n)
-            n+=1
+            print('Processing batch number: %d / %d' % (step, sample_size//BATCH_SIZE))
 
         # Save predictions in pickle file
         filename = checkpoint_file.split('/')
@@ -137,7 +136,7 @@ def run_validation(checkpoint_file, model_name):
 
         predictions = []
         labels = []
-        n = 0
+
         for step in range(sample_size // BATCH_SIZE):
             _data, _labels = sess.run([batch_data, batch_labels])
             _data = np.swapaxes(_data,0,1)
@@ -158,8 +157,7 @@ def run_validation(checkpoint_file, model_name):
 
             predictions.extend(single_prediction.tolist()) 
             # NUM_IMAGES * 8 * NUM_CAT
-            print('Processing batch number: %d / %d' % (n, sample_size//BATCH_SIZE))
-            n+=1
+            print('Processing batch number: %d / %d' % (step, sample_size//BATCH_SIZE))
 
         # Save predictions in pickle file
         filename = checkpoint_file.split('/')

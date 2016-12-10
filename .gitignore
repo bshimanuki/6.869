@@ -5,6 +5,8 @@
 /tb_logs
 /logs
 /checkpoints
+/submissions
+/predictions
 __pycache__
 *.pyc
 *.pem
