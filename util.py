@@ -96,7 +96,7 @@ def make_submission_file(prediction_file, aggregation_method):
 
     prefix_list = prediction_file.split('__')[-2:]
     prefix = '__'.join(prefix_list)
-    output_file = SUBMISSIONS_DIR + 'submission__' + prefix + '.txt'
+    output_file = SUBMISSIONS_DIR + 'submission__' + prefix + '__' + aggregation_method+ '.txt'
 
     with open(prediction_file, 'rb') as pred_f:
         print("Opened prediction file %s" % prediction_file)
@@ -114,7 +114,7 @@ def make_submission_file(prediction_file, aggregation_method):
                 num_prediction_per_image = len(np_prediction)
 
                 if (aggregation_method == "average"):
-                    aggregate_prediction = np.average(np_prediction, axis = 0)
+                    ensemble_prediction = np.average(np_prediction, axis = 0)
                 elif (aggregation_method == "product"):
                     ensemble_prediction = np.prod(np_prediction, axis=0)
                 elif (aggregation_method == "max"):
