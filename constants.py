@@ -31,8 +31,8 @@ FF_REG = 1e-4
 
 # TODO: Maybe don't use these constants directly but pass in as parameters?
 FLAG_RESIZE_AND_CROP = True
-IMAGE_RESIZED_SIZE = 128
-IMAGE_CROPPED_SIZE = 112
+IMAGE_RESIZED_SIZE = 256
+IMAGE_CROPPED_SIZE = 224
 FLAG_RANDOM_FLIP_LR = True
 FLAG_NORMALIZE = True
 FLAG_DEMEAN = True
