@@ -115,7 +115,7 @@ def run_validation(checkpoint_file, model_name):
     prediction = tf.nn.softmax(logits)
 
     batch_data, batch_labels = tf.train.batch(
-        [test_data, test_labels]
+        [test_data, test_labels],
         batch_size=BATCH_SIZE,
         capacity=5*BATCH_SIZE)
 
