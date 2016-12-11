@@ -105,7 +105,6 @@ def make_submission_file(prediction_file, aggregation_method):
         with open(output_file, 'w') as out_f:
             print("Created submission file %s" % output_file)
             for i in range(len(predictions)):
-                print('Filling in prediction number : ' + str(i) + '/' + str(len(predictions)))
                 short_data_file = '/'.join(data_files[i].split('/')[-2:])
                 output_line = [short_data_file]
 
