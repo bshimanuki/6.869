@@ -105,7 +105,6 @@ def make_submission_file(prediction_file, aggregation_method):
         with open(output_file, 'w') as out_f:
             print("Created submission file %s" % output_file)
             for i in range(len(predictions)):
-                print('Filling in prediction number : ' + str(i) + '/' + str(len(predictions)))
                 short_data_file = '/'.join(data_files[i].split('/')[-2:])
                 output_line = [short_data_file]
 
@@ -152,8 +151,8 @@ def get_inputs_crop_flip(partition, target_categories=[], n=None):
     if FLAG_NORMALIZE:
         image = image/255.
 
-    # image1 = tf.image.crop_to_bounding_box(image, 0, 0, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
-    image1 = tf.image.random_ops.random_crop(image, [IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, NUM_CHANNELS], seed=SEED)
+    image1 = tf.image.crop_to_bounding_box(image, 0, 0, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
+    # image1 = tf.image.random_ops.random_crop(image, [IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, NUM_CHANNELS], seed=SEED)
 
 
     image2 = tf.image.crop_to_bounding_box(image, 0, IMAGE_RESIZED_SIZE - IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE, IMAGE_CROPPED_SIZE)
