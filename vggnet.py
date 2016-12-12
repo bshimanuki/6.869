@@ -42,14 +42,14 @@ class VGGNet(Model):
         # ff_layer(input_layer, depth, activation_fn=tf.nn.sigmoid, dropout=None, name=None, activation=True, variables=None):
         fc6 = ff_layer(
             conv5r,
-            depth=1024,
+            depth=4096,
             dropout = self.keep_prob,
             name='fc6',
             variables=variables
         )
         fc7 = ff_layer(
             fc6,
-            depth=512,
+            depth=4096,
             dropout = self.keep_prob,
             name='fc7',
             variables=variables
